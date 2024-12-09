@@ -129,19 +129,19 @@ def register_task(name: str):
 
 # Here, add all the services offered
 @register_task("play_video")
-async def play_video_task(videoUpload: Optional[fastapi.UploadFile]=None):
+async def play_video_task(videoUpload: Optional[fastapi.UploadFile]=None, frames: Optional[int]=None, fps: Optional[int]=None):
     try:
         with await VideoArgAsFile(videoUpload) as infile:
-            tryvds.draw_video(infile.name)
+            tryvds.draw_video(infile.name, fixed_frames=frames, fixed_fps=fps)
     except Exception as e:
         return {'status': f'Error {e}'}
     return {'status' : f'Success'}
 
 @register_task("downsample_it")
-async def downsample_video_task(video: Optional[fastapi.UploadFile]=None):
+async def downsample_video_task(video: Optional[fastapi.UploadFile]=None, factor: int = 2):
     try:
         with await VideoArgAsFile(video) as infile:
-            outdat = tryvds.downsample_it(infile.name)
+            outdat = tryvds.downsample_it(infile.name, factor)
             update_video_bytes(outdat)
             print(f"The result of downsampling of size {len(outdat)}")
             return {'status' : 'Success',
@@ -150,6 +150,41 @@ async def downsample_video_task(video: Optional[fastapi.UploadFile]=None):
                     #'value' : outdat}
                     #'value' : Response(content=outdat, media_type='video/mp4')}
             #return Response(content=outdat, media_type='video/mp4')
+    except Exception as e:
+        return {'status': 'Error',
+                'value' : f"{e}"}
+
+@register_task("select_at_fps")
+async def select_frames_at_fps_task(video: Optional[fastapi.UploadFile]=None, fps: int = 1):
+    try:
+        with await VideoArgAsFile(video) as infile:
+            outdat = tryvds.sample_at_fps(infile.name, fps)
+            update_video_bytes(outdat)
+            return {'status' : 'Success',
+                    'value' : f'FPS resampled file size is {len(outdat)}'}
+    except Exception as e:
+        return {'status': 'Error',
+                'value' : f"{e}"}
+
+@register_task("select_frames")
+async def select_fixed_frames_task(video: Optional[fastapi.UploadFile]=None, frames: int = 21):
+    try:
+        with await VideoArgAsFile(video) as infile:
+            outdat = tryvds.sample_n_frames(infile.name, frames)
+            update_video_bytes(outdat)
+            return {'status' : 'Success',
+                    'value' : f'After selecting frames, file size is {len(outdat)}'}
+    except Exception as e:
+        return {'status': 'Error',
+                'value' : f"{e}"}
+
+@register_task("query_info")
+async def query_video_info_task(video: Optional[fastapi.UploadFile]=None):
+    try:
+        with await VideoArgAsFile(video) as infile:
+            anses = tryvds.query_info(infile.name)
+            return {'status' : 'Success',
+                    'value' : anses}
     except Exception as e:
         return {'status': 'Error',
                 'value' : f"{e}"}
@@ -171,7 +206,7 @@ async def save_video_for_later_task(video: fastapi.UploadFile):
     except Exception as e:
         return {'status': 'Error',
                 'value' : f"{e}"}
-
+    
 @register_task("restore_video")
 async def restore_previous_video_task():
     restore_video_bytes()

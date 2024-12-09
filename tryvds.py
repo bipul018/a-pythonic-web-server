@@ -118,12 +118,12 @@ class FrameGenStream:
             return numpy.frombuffer(in_bytes, numpy.uint8).reshape(self.shape)
         return None
     
-def draw_video(file_name, fixed_frames = None):
+def draw_video(file_name, fixed_frames = None, fixed_fps = None):
     #process, width, height, frames, duration = make_video_stream(file_name)
     got_frames = 0
     #for frame in get_video_frame(process.stdout, width, height, frames):
     print(f'File {file_name} is going to be played')
-    with FrameGenStream(file_name, fixed_frames) as stream:
+    with FrameGenStream(file_name, fix_fps=fixed_fps, fix_frames=fixed_frames) as stream:
         while (frame:=stream.next_frame()) is not None:
             cv2.imshow('Video Stream', numpy.flip(frame, axis=-1))
             # Break loop if 'q' is pressed
@@ -159,7 +159,35 @@ def downsample_it(filename, factor=2):
             print(f"Terminated downsampling {filename} in {out_file.file_name}")
             with open(out_file.file_name, 'rb') as f:
                 return f.read()
-            
+
+def sample_at_fps(filename, fps):
+    with FrameGenStream(filename, fix_fps = fps) as in_stream:
+        with VideoFromFrame(in_stream.shape[1], in_stream.shape[0], new_fps=fps) as out_file:
+            while (in_frame:=in_stream.next_frame()) is not None:
+                out_file.write_frame(in_frame)
+            out_file.terminate()
+            print(f"Terminated setting to {fps} fps of {filename} to {out_file.file_name}")
+            with open(out_file.file_name, 'rb') as f:
+                return f.read()
+def query_info(filename):
+    with FrameGenStream(filename) as vid:
+        return {"width" : vid.shape[1],
+                "height" : vid.shape[0],
+                "duration" : vid.duration,
+                "fps" : vid.fps,
+                "frames" : vid.max_frames}
+        
+
+def sample_n_frames(filename, frames):
+    with FrameGenStream(filename, fix_frames = frames) as in_stream:
+        with VideoFromFrame(in_stream.shape[1], in_stream.shape[0], new_fps=frames/in_stream.duration) as out_file:
+            while (in_frame:=in_stream.next_frame()) is not None:
+                out_file.write_frame(in_frame)
+            out_file.terminate()
+            print(f"Terminated selecting {frames} frames of {filename} to {out_file.file_name}")
+            with open(out_file.file_name, 'rb') as f:
+                return f.read()
+
 
 # Now try to make a file from a bytestream
 def test_from_bytes(filename):
@@ -169,9 +197,8 @@ def test_from_bytes(filename):
             print(f"Actual file is {filename}, file size is {len(data)}, temp file is {infile.name}")
             infile.write(data)
             draw_video(infile.name)
-        
-        
-        
+
+
             
 
 # Set up a video processing service
