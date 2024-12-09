@@ -25,7 +25,7 @@ def find_first_match(data, field, value):
     return None  # Return None if no match is found
 
 class VideoFromFrame:
-    def __init__(self, width, height, out_name = None):
+    def __init__(self, width, height, new_fps, out_name = None):
         if out_name is None:
             tf = tempfile.NamedTemporaryFile(suffix=".mp4",delete=False)
             self.file_name = tf.name
@@ -37,8 +37,9 @@ class VideoFromFrame:
         self.shape = (height, width, 3)
         args = (
             ffmpeg
-            .input('pipe:', format='rawvideo', pix_fmt='rgb24', s=f'{width}x{height}')
-            .output(self.file_name)
+            .input('pipe:', format='rawvideo', pix_fmt='rgb24',
+                   s=f'{width}x{height}', r=1)
+            .output(self.file_name, r=f'{new_fps}')
             .overwrite_output()
             .compile()
         )
@@ -137,7 +138,7 @@ infile = '/home/weepingcoder/fks/vdos/one-downdog.mp4'
 
 def test_downsampling(filename):
     with FrameGenStream(filename) as in_stream:
-        with VideoFromFrame(in_stream.shape[1] // 2, in_stream.shape[0] // 2) as out_file:
+        with VideoFromFrame(math.ceil(in_stream.shape[1]/2), math.ceil(in_stream.shape[0]/2), new_fps=in_stream.fps) as out_file:
             while (in_frame:=in_stream.next_frame()) is not None:
                 out_file.write_frame(in_frame[::2,::2,:])
             out_file.terminate()
@@ -149,11 +150,11 @@ def test_downsampling(filename):
                     time.sleep(processed_stream.duration/processed_stream.desired_frames)
                 cv2.destroyAllWindows()
 
-def downsample_it(filename):
+def downsample_it(filename, factor=2):
     with FrameGenStream(filename) as in_stream:
-        with VideoFromFrame(in_stream.shape[1] // 2, in_stream.shape[0] // 2) as out_file:
+        with VideoFromFrame(math.ceil(in_stream.shape[1]/factor), math.ceil(in_stream.shape[0]/factor), new_fps=in_stream.fps) as out_file:
             while (in_frame:=in_stream.next_frame()) is not None:
-                out_file.write_frame(in_frame[::2,::2,:])
+                out_file.write_frame(in_frame[::factor,::factor,:])
             out_file.terminate()
             print(f"Terminated downsampling {filename} in {out_file.file_name}")
             with open(out_file.file_name, 'rb') as f:
