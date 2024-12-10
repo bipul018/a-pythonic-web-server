@@ -118,102 +118,74 @@ class TaskItem(BaseModel):
     fxn: Callable[..., Any]
 
 tasks: List[TaskItem] = []    
-    
-def register_task(name: str):
+log_traceback_on_error = True
+import functools
+def register_task(name: str, **kwargs):
     def decorator(func: Callable[..., Any]):
         global tasks
         endpoint = f"/task/{name}"
         tsk = TaskItem(name=name, fxn=func)
         tasks.append(tsk)
-        return app.post(endpoint)(func)
+        @functools.wraps(func)
+        async def wrapped_func(*args, **kwargs):
+            try:
+                return await func(*args, **kwargs)
+            except Exception as e:
+                if log_traceback_on_error:
+                    print("Exception:", repr(e))
+                    print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
+                return {'status': 'Error',
+                        'value' : f"{e}"}
+        return app.post(endpoint, **kwargs)(wrapped_func)
     return decorator
 
 # Here, add all the services offered
 @register_task("play_video")
 async def play_video_task(videoUpload: Optional[fastapi.UploadFile]=None, frames: Optional[int]=None, fps: Optional[int]=None):
-    try:
-        with await VideoArgAsFile(videoUpload) as infile:
-            tryvds.draw_video(infile.name, fixed_frames=frames, fixed_fps=fps)
-    except Exception as e:
-        print("Exception:", repr(e))
-        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
-        return {'status': f'Error {e}'}
+    with await VideoArgAsFile(videoUpload) as infile:
+        tryvds.draw_video(infile.name, fixed_frames=frames, fixed_fps=fps)
     return {'status' : f'Success'}
 
 @register_task("downsample_it")
 async def downsample_video_task(video: Optional[fastapi.UploadFile]=None, factor: int = 2):
-    try:
-        with await VideoArgAsFile(video) as infile:
-            outdat = tryvds.downsample_it(infile.name, factor)
-            update_video_bytes(outdat)
-            print(f"The result of downsampling of size {len(outdat)}")
-            return {'status' : 'Success',
-                    'value' : f'Downsampled file size is {len(outdat)}'}
-            #return {'status' : f'Success',
-                    #'value' : outdat}
-                    #'value' : Response(content=outdat, media_type='video/mp4')}
-            #return Response(content=outdat, media_type='video/mp4')
-    except Exception as e:
-        print("Exception:", repr(e))
-        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
-        return {'status': 'Error',
-                'value' : f"{e}"}
+    with await VideoArgAsFile(video) as infile:
+        outdat = tryvds.downsample_it(infile.name, factor)
+        update_video_bytes(outdat)
+        print(f"The result of downsampling of size {len(outdat)}")
+        return {'status' : 'Success',
+                'value' : f'Downsampled file size is {len(outdat)}'}
 
 @register_task("draw_landmarks")
 async def draw_landmarks_on_video_task(video: Optional[fastapi.UploadFile]=None):
-    try:
-        with await VideoArgAsFile(video) as infile:
-            outdat = tryvds.draw_landmarks_on_video(infile.name)
-            update_video_bytes(outdat)
-            print(f"The result of drawing landmarks was of size {len(outdat)}")
-            return {'status' : 'Success',
-                    'value' : f'file size is {len(outdat)}'}
-    except Exception as e:
-        print("Exception:", repr(e))
-        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
-        return {'status': 'Error',
-                'value' : f"{e}"}
+    with await VideoArgAsFile(video) as infile:
+        outdat = tryvds.draw_landmarks_on_video(infile.name)
+        update_video_bytes(outdat)
+        print(f"The result of drawing landmarks was of size {len(outdat)}")
+        return {'status' : 'Success',
+                'value' : f'file size is {len(outdat)}'}
 
 @register_task("select_at_fps")
 async def select_frames_at_fps_task(video: Optional[fastapi.UploadFile]=None, fps: int = 1):
-    try:
-        with await VideoArgAsFile(video) as infile:
-            outdat = tryvds.sample_at_fps(infile.name, fps)
-            update_video_bytes(outdat)
-            return {'status' : 'Success',
-                    'value' : f'FPS resampled file size is {len(outdat)}'}
-    except Exception as e:
-        print("Exception:", repr(e))
-        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
-        return {'status': 'Error',
-                'value' : f"{e}"}
+    with await VideoArgAsFile(video) as infile:
+        outdat = tryvds.sample_at_fps(infile.name, fps)
+        update_video_bytes(outdat)
+        return {'status' : 'Success',
+                'value' : f'FPS resampled file size is {len(outdat)}'}
 
 @register_task("select_frames")
 async def select_fixed_frames_task(video: Optional[fastapi.UploadFile]=None, frames: int = 21):
-    try:
-        with await VideoArgAsFile(video) as infile:
-            outdat = tryvds.sample_n_frames(infile.name, frames)
-            update_video_bytes(outdat)
-            return {'status' : 'Success',
-                    'value' : f'After selecting frames, file size is {len(outdat)}'}
-    except Exception as e:
-        print("Exception:", repr(e))
-        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
-        return {'status': 'Error',
-                'value' : f"{e}"}
+    with await VideoArgAsFile(video) as infile:
+        outdat = tryvds.sample_n_frames(infile.name, frames)
+        update_video_bytes(outdat)
+        return {'status' : 'Success',
+                'value' : f'After selecting frames, file size is {len(outdat)}'}
 
 @register_task("query_info")
 async def query_video_info_task(video: Optional[fastapi.UploadFile]=None):
-    try:
-        with await VideoArgAsFile(video) as infile:
-            anses = tryvds.query_info(infile.name)
-            return {'status' : 'Success',
-                    'value' : anses}
-    except Exception as e:
-        print("Exception:", repr(e))
-        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
-        return {'status': 'Error',
-                'value' : f"{e}"}
+    with await VideoArgAsFile(video) as infile:
+        anses = tryvds.query_info(infile.name)
+        return {'status' : 'Success',
+                'value' : anses}
 
 @register_task("clear_last_video")
 async def clear_last_video_saved_task():
@@ -224,16 +196,10 @@ async def clear_last_video_saved_task():
 
 @register_task("save_video")
 async def save_video_for_later_task(video: fastapi.UploadFile):
-    try:
-        data = await video.read()
-        update_video_bytes(data)
-        return {'status' : 'Success',
-                'value' : f'Saved video size is {len(data)}'}
-    except Exception as e:
-        print("Exception:", repr(e))
-        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
-        return {'status': 'Error',
-                'value' : f"{e}"}
+    data = await video.read()
+    update_video_bytes(data)
+    return {'status' : 'Success',
+            'value' : f'Saved video size is {len(data)}'}
     
 @register_task("restore_video")
 async def restore_previous_video_task():
@@ -241,9 +207,6 @@ async def restore_previous_video_task():
     old_bytes = latest_video_bytes
     return {'status' : 'Success',
             'value' : f'Cleared video file size was {len(old_bytes)}'}
-
-            
-    
 
 #@app.websocket("/ws")
 #async def websocket_endpoint(websocket: WebSocket):
