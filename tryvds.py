@@ -42,6 +42,8 @@ class VideoFromFrame:
         self.out_stream = self.out_container.add_stream('mpeg4', rate=frac_fps)
         self.out_stream.width = width
         self.out_stream.height = height
+        self.finx = 0
+        self.fps = new_fps
         self._terminated = False
     def __enter__(self):
         return self
@@ -66,8 +68,9 @@ class VideoFromFrame:
         assert (frame.height == self.shape[0]) and (frame.width == self.shape[1])
         for packet in self.out_stream.encode(frame):
             self.out_container.mux(packet)
-        
-    
+        self.finx+=1
+    def ts_ms(self):
+        return 1000 * (self.finx/self.fps)
 
 class FrameGenStream:
     def __init__(self, file_name,
@@ -122,6 +125,8 @@ class FrameGenStream:
         if in_bytes is not None:
             return numpy.frombuffer(in_bytes, numpy.uint8).reshape(self.shape)
         return None
+    def ts_ms(self):
+        return 1000 * (self.actual_frame / self.fps)
     
 def draw_video(file_name, fixed_frames = None, fixed_fps = None):
     #process, width, height, frames, duration = make_video_stream(file_name)
