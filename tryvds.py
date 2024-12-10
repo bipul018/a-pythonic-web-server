@@ -1,11 +1,13 @@
 import asyncio
 import ffmpeg
+import av
 import numpy
 import cv2
 import subprocess
 import time
 import tempfile
 import pathlib
+import fractions
 # ffmpeg.probe() contains 'streams' and 'format'
 # a stream contains 'codec_type' which is either video or audio
 #    also contains width and height, also contains 'nb_frames' which gives total number of franes
@@ -35,23 +37,22 @@ class VideoFromFrame:
             self._was_temp = False
             self.file_name = out_name
         self.shape = (height, width, 3)
-        args = (
-            ffmpeg
-            .input('pipe:', format='rawvideo', pix_fmt='rgb24',
-                   s=f'{width}x{height}', r=1)
-            .output(self.file_name, r=f'{new_fps}')
-            .overwrite_output()
-            .compile()
-        )
+        self.out_container = av.open(self.file_name, mode='w')
+        frac_fps = fractions.Fraction(new_fps).limit_denominator(10000)
+        self.out_stream = self.out_container.add_stream('mpeg4', rate=frac_fps)
+        self.out_stream.width = width
+        self.out_stream.height = height
         self._terminated = False
-        self.process = subprocess.Popen(args, stdin=subprocess.PIPE)
     def __enter__(self):
         return self
     def terminate(self):
         if not self._terminated:
             self._terminated = True
-            self.process.terminate()
-            self.process.wait()
+            # Flush stream
+            for packet in self.out_stream.encode():
+                self.out_container.mux(packet)
+            # Close the file
+            self.out_container.close()
     def close(self):
         self.terminate()
         if self._was_temp:
@@ -60,7 +61,11 @@ class VideoFromFrame:
         self.close()
     def write_frame(self, np_frame):
         assert (np_frame.shape[0] == self.shape[0]) and (np_frame.shape[1] == self.shape[1]) and (np_frame.shape[2] == self.shape[2])
-        self.process.stdin.write(np_frame.astype(numpy.uint8).tobytes())
+        #self.process.stdin.write(np_frame.astype(numpy.uint8).tobytes())
+        frame = av.VideoFrame.from_ndarray(np_frame, format="rgb24")
+        assert (frame.height == self.shape[0]) and (frame.width == self.shape[1])
+        for packet in self.out_stream.encode(frame):
+            self.out_container.mux(packet)
         
     
 
@@ -180,6 +185,7 @@ def query_info(filename):
 
 def sample_n_frames(filename, frames):
     with FrameGenStream(filename, fix_frames = frames) as in_stream:
+        print(f"New video framerate after selecting{frames} frames is {frames/in_stream.duration}")
         with VideoFromFrame(in_stream.shape[1], in_stream.shape[0], new_fps=frames/in_stream.duration) as out_file:
             while (in_frame:=in_stream.next_frame()) is not None:
                 out_file.write_frame(in_frame)
