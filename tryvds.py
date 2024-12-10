@@ -8,10 +8,7 @@ import time
 import tempfile
 import pathlib
 import fractions
-# ffmpeg.probe() contains 'streams' and 'format'
-# a stream contains 'codec_type' which is either video or audio
-#    also contains width and height, also contains 'nb_frames' which gives total number of franes
-#    and 'duration' is the length of video in seconds
+import draw_landmarks
 
 import math
 
@@ -170,6 +167,22 @@ def downsample_it(filename, factor=2):
             with open(out_file.file_name, 'rb') as f:
                 return f.read()
 
+def draw_landmarks_on_video(filename):
+    with FrameGenStream(filename) as in_stream:
+        with VideoFromFrame(in_stream.shape[1], in_stream.shape[0], new_fps=in_stream.fps) as out_file:
+            detector=draw_landmarks.load_detector()
+            while (in_frame:=in_stream.next_frame()) is not None:
+                try:
+                    drawn_frame,_=draw_landmarks.run_on_image(detector, in_frame, int(in_stream.ts_ms()))
+                except Exception as e:
+                    print("Exception:", repr(e), " occured for drawing landmark on frame ", out_file.finx)
+                    drawn_frame = in_frame
+                out_file.write_frame(drawn_frame)
+            out_file.terminate()
+            print(f"Terminated drawing landmarks on {filename} in {out_file.file_name}")
+            with open(out_file.file_name, 'rb') as f:
+                return f.read()
+            
 def sample_at_fps(filename, fps):
     with FrameGenStream(filename, fix_fps = fps) as in_stream:
         with VideoFromFrame(in_stream.shape[1], in_stream.shape[0], new_fps=fps) as out_file:

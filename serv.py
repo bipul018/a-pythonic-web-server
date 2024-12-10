@@ -159,6 +159,21 @@ async def downsample_video_task(video: Optional[fastapi.UploadFile]=None, factor
         return {'status': 'Error',
                 'value' : f"{e}"}
 
+@register_task("draw_landmarks")
+async def draw_landmarks_on_video_task(video: Optional[fastapi.UploadFile]=None):
+    try:
+        with await VideoArgAsFile(video) as infile:
+            outdat = tryvds.draw_landmarks_on_video(infile.name)
+            update_video_bytes(outdat)
+            print(f"The result of drawing landmarks was of size {len(outdat)}")
+            return {'status' : 'Success',
+                    'value' : f'file size is {len(outdat)}'}
+    except Exception as e:
+        print("Exception:", repr(e))
+        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
+        return {'status': 'Error',
+                'value' : f"{e}"}
+
 @register_task("select_at_fps")
 async def select_frames_at_fps_task(video: Optional[fastapi.UploadFile]=None, fps: int = 1):
     try:
