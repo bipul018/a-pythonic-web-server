@@ -4,6 +4,7 @@ import io
 import enum
 from typing import Dict, Any, List, Callable, Optional, Union, Type
 from contextlib import contextmanager
+import traceback
 
 import fastapi
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Depends
@@ -134,6 +135,8 @@ async def play_video_task(videoUpload: Optional[fastapi.UploadFile]=None, frames
         with await VideoArgAsFile(videoUpload) as infile:
             tryvds.draw_video(infile.name, fixed_frames=frames, fixed_fps=fps)
     except Exception as e:
+        print("Exception:", repr(e))
+        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
         return {'status': f'Error {e}'}
     return {'status' : f'Success'}
 
@@ -151,6 +154,8 @@ async def downsample_video_task(video: Optional[fastapi.UploadFile]=None, factor
                     #'value' : Response(content=outdat, media_type='video/mp4')}
             #return Response(content=outdat, media_type='video/mp4')
     except Exception as e:
+        print("Exception:", repr(e))
+        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
         return {'status': 'Error',
                 'value' : f"{e}"}
 
@@ -163,6 +168,8 @@ async def select_frames_at_fps_task(video: Optional[fastapi.UploadFile]=None, fp
             return {'status' : 'Success',
                     'value' : f'FPS resampled file size is {len(outdat)}'}
     except Exception as e:
+        print("Exception:", repr(e))
+        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
         return {'status': 'Error',
                 'value' : f"{e}"}
 
@@ -175,6 +182,8 @@ async def select_fixed_frames_task(video: Optional[fastapi.UploadFile]=None, fra
             return {'status' : 'Success',
                     'value' : f'After selecting frames, file size is {len(outdat)}'}
     except Exception as e:
+        print("Exception:", repr(e))
+        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
         return {'status': 'Error',
                 'value' : f"{e}"}
 
@@ -186,6 +195,8 @@ async def query_video_info_task(video: Optional[fastapi.UploadFile]=None):
             return {'status' : 'Success',
                     'value' : anses}
     except Exception as e:
+        print("Exception:", repr(e))
+        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
         return {'status': 'Error',
                 'value' : f"{e}"}
 
@@ -204,6 +215,8 @@ async def save_video_for_later_task(video: fastapi.UploadFile):
         return {'status' : 'Success',
                 'value' : f'Saved video size is {len(data)}'}
     except Exception as e:
+        print("Exception:", repr(e))
+        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
         return {'status': 'Error',
                 'value' : f"{e}"}
     
