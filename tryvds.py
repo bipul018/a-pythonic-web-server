@@ -1,5 +1,4 @@
 import asyncio
-import ffmpeg
 import av
 import numpy
 import cv2
@@ -72,22 +71,16 @@ class VideoFromFrame:
 class FrameGenStream:
     def __init__(self, file_name,
                  fix_fps = None, fix_frames = None):
-        #self.process, self.width, self.height, self.max_frames, self.duration = make_video_stream(file_name)
-        args = (
-            ffmpeg
-            .input(file_name)
-            .output('pipe:', format='rawvideo', pix_fmt='rgb24')
-            .compile()
-        )
-        probe = ffmpeg.probe(file_name)
-        stream = find_first_match(probe['streams'], 'codec_type', 'video')
-        self.shape = (int(stream['height']), int(stream['width']), 3)
-        self.max_frames = int(stream['nb_frames'])
-        self.duration = float(stream['duration'])
+        self.in_container = av.open(file_name, mode='r')
+        vid_stream = self.in_container.streams.video[0]
+        vid_stream.thread_type = "AUTO" # makes it go faster
+        self.shape = (int(vid_stream.height), int(vid_stream.width), 3)
+        self.max_frames = int(vid_stream.frames)
+        self.duration = float(vid_stream.duration * vid_stream.time_base)
         self.fps = self.max_frames/self.duration
-        self.process = subprocess.Popen(args, stdout=subprocess.PIPE)
         self.total_size = self.shape[0] * self.shape[1] * self.shape[2]
         # calculate the desired fps to capture at/interpolate at
+        self._frame_genr = self.in_container.decode(video=0)
         if fix_frames is not None:
             self.desired_frames = fix_frames
         elif fix_fps is not None:
@@ -101,26 +94,26 @@ class FrameGenStream:
     def __enter__(self):
         return self
     def close(self):
-        self.process.terminate()
+        self.in_container.close()
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
     def next_frame(self):
         if self.actual_frame >= self.max_frames:
             return None
         old_finx = self.finx
-        in_bytes = None
+        in_frame = None
         while old_finx == self.finx:
-            in_bytes = None
-            in_bytes = self.process.stdout.read(self.total_size)
-            if not in_bytes:
-                in_bytes = None
+            in_frame = None
+            in_frame = next(self._frame_genr)
+            if not in_frame:
+                in_frame = None
                 break
             self.actual_frame += 1
             self.finx = map_to_range(self.actual_frame,
                                      self.max_frames,
                                      self.desired_frames)
-        if in_bytes is not None:
-            return numpy.frombuffer(in_bytes, numpy.uint8).reshape(self.shape)
+        if in_frame is not None:
+            return in_frame.to_ndarray(format='rgb24')
         return None
     def ts_ms(self):
         return 1000 * (self.actual_frame / self.fps)

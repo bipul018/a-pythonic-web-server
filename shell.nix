@@ -24,7 +24,6 @@ in pkgs.mkShell {
     pkgs.python311Packages.uvicorn
     pkgs.python311Packages.bson
     pkgs.python311Packages.websockets
-    pkgs.python311Packages.ffmpeg-python
     pkgs.python311Packages.python-multipart
     pkgs.gcc
     pkgs.glfw

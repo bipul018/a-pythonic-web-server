@@ -27,7 +27,6 @@ distlib~=0.3.8
 dm-tree~=0.1.8
 fastapi~=0.110.2
 fastparquet~=2024.5.0
-ffmpeg-python~=0.2.0
 filelock~=3.13.4
 flatbuffers~=23.5.26
 fonttools~=4.51.0
