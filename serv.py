@@ -66,29 +66,6 @@ def restore_video_bytes():
     global latest_video_bytes
     latest_video_bytes = previous_video_bytes
 
-class VideoArgAsFile_:
-    #def __init__(self, videoUpload: Optional[fastapi.UploadFile]):
-    #    if (videoUpload is None) and (latest_video_bytes is None):
-    #        raise "No Video File available to process"
-    #    if videoUpload is None:
-    #        data = latest_video_bytes
-    #    else:
-    #        data = await videoUpload.read()
-    #    self.file = tempfile.NamedTemporaryFile(mode='wb')
-    #    print(f"Actual file is {videoUpload.filename}, file size is {len(data)}, temp file is {self.file.name}")
-    #    self.file.write(data)
-    #    self.name = self.file.name
-    def __init__(self, data):
-        self.file = tempfile.NamedTemporaryFile(mode='wb')
-        print(f"Uploaded file size is {len(data)}, temp file is {self.file.name}")
-        self.file.write(data)
-        self.name = self.file.name
-    def __enter__(self):
-        return self
-    def close(self):
-        self.file.close()
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.close()
 async def VideoArgAsFile(videoUpload: Optional[fastapi.UploadFile]):
     if (videoUpload is None) and (latest_video_bytes is None):
         raise Exception("No Video File available to process")
@@ -96,22 +73,7 @@ async def VideoArgAsFile(videoUpload: Optional[fastapi.UploadFile]):
         data = latest_video_bytes
     else:
         data = await videoUpload.read()
-    return VideoArgAsFile_(data)
-        
-
-# @contextmanager
-# async def get_video_arg_as_file(videoUpload: Optional[fastapi.UploadFile]):
-#     if (videoUpload is None) and (latest_video_bytes is None):
-#         raise "No Video File available to process"
-    
-#     if videoUpload is None:
-#         data = latest_video_bytes
-#     else:
-#         data = await videoUpload.read()
-#     with tempfile.NamedTemporaryFile(mode='wb') as infile:
-#         print(f"Actual file is {videoUpload.filename}, file size is {len(data)}, temp file is {infile.name}")
-#         infile.write(data)
-#         yield infile.name
+    return io.BytesIO(data)
 
 class TaskItem(BaseModel):
     name: str
@@ -143,13 +105,13 @@ def register_task(name: str, **kwargs):
 @register_task("play_video")
 async def play_video_task(videoUpload: Optional[fastapi.UploadFile]=None, frames: Optional[int]=None, fps: Optional[int]=None):
     with await VideoArgAsFile(videoUpload) as infile:
-        tryvds.draw_video(infile.name, fixed_frames=frames, fixed_fps=fps)
+        tryvds.draw_video(infile, fixed_frames=frames, fixed_fps=fps)
     return {'status' : f'Success'}
 
 @register_task("downsample_it")
 async def downsample_video_task(video: Optional[fastapi.UploadFile]=None, factor: int = 2):
     with await VideoArgAsFile(video) as infile:
-        outdat = tryvds.downsample_it(infile.name, factor)
+        outdat = tryvds.downsample_it(infile, factor)
         update_video_bytes(outdat)
         print(f"The result of downsampling of size {len(outdat)}")
         return {'status' : 'Success',
@@ -158,7 +120,7 @@ async def downsample_video_task(video: Optional[fastapi.UploadFile]=None, factor
 @register_task("draw_landmarks")
 async def draw_landmarks_on_video_task(video: Optional[fastapi.UploadFile]=None):
     with await VideoArgAsFile(video) as infile:
-        outdat = tryvds.draw_landmarks_on_video(infile.name)
+        outdat = tryvds.draw_landmarks_on_video(infile)
         update_video_bytes(outdat)
         print(f"The result of drawing landmarks was of size {len(outdat)}")
         return {'status' : 'Success',
@@ -167,7 +129,7 @@ async def draw_landmarks_on_video_task(video: Optional[fastapi.UploadFile]=None)
 @register_task("select_at_fps")
 async def select_frames_at_fps_task(video: Optional[fastapi.UploadFile]=None, fps: int = 1):
     with await VideoArgAsFile(video) as infile:
-        outdat = tryvds.sample_at_fps(infile.name, fps)
+        outdat = tryvds.sample_at_fps(infile, fps)
         update_video_bytes(outdat)
         return {'status' : 'Success',
                 'value' : f'FPS resampled file size is {len(outdat)}'}
@@ -175,7 +137,7 @@ async def select_frames_at_fps_task(video: Optional[fastapi.UploadFile]=None, fp
 @register_task("select_frames")
 async def select_fixed_frames_task(video: Optional[fastapi.UploadFile]=None, frames: int = 21):
     with await VideoArgAsFile(video) as infile:
-        outdat = tryvds.sample_n_frames(infile.name, frames)
+        outdat = tryvds.sample_n_frames(infile, frames)
         update_video_bytes(outdat)
         return {'status' : 'Success',
                 'value' : f'After selecting frames, file size is {len(outdat)}'}
@@ -183,7 +145,7 @@ async def select_fixed_frames_task(video: Optional[fastapi.UploadFile]=None, fra
 @register_task("query_info")
 async def query_video_info_task(video: Optional[fastapi.UploadFile]=None):
     with await VideoArgAsFile(video) as infile:
-        anses = tryvds.query_info(infile.name)
+        anses = tryvds.query_info(infile)
         return {'status' : 'Success',
                 'value' : anses}
 
