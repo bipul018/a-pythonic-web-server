@@ -1,4 +1,5 @@
 import asyncio
+import io
 import av
 import numpy
 import cv2
@@ -23,17 +24,26 @@ def find_first_match(data, field, value):
     return None  # Return None if no match is found
 
 class VideoFromFrame:
-    def __init__(self, width, height, new_fps, out_name = None):
-        if out_name is None:
-            tf = tempfile.NamedTemporaryFile(suffix=".mp4",delete=False)
-            self.file_name = tf.name
-            tf.close()
+    """
+    When a desired output sink is provided, writes the video data into that sink,
+    else will create a buffer and write to that buffer as bufferio
+    """
+    def __init__(self, width, height, new_fps, output_file_or_obj = None):
+        if output_file_or_obj is None:
+            self.dst_obj = io.BytesIO()
             self._was_temp = True
+            output_format = 'mp4'
         else:
+            self.dst_obj = output_file_or_obj
             self._was_temp = False
-            self.file_name = out_name
+            try:
+                output_file_or_obj.name
+                output_format = None
+            except:
+                output_format = 'mp4'
+            #self.file_name = out_name
         self.shape = (height, width, 3)
-        self.out_container = av.open(self.file_name, mode='w')
+        self.out_container = av.open(self.dst_obj, mode='w', format=output_format)
         frac_fps = fractions.Fraction(new_fps).limit_denominator(10000)
         self.out_stream = self.out_container.add_stream('mpeg4', rate=frac_fps)
         self.out_stream.width = width
@@ -43,6 +53,19 @@ class VideoFromFrame:
         self._terminated = False
     def __enter__(self):
         return self
+    def bytes(self):
+        """Returns the contents of video buffer. Only allowed to call if terminated already"""
+        if not self._terminated:
+            raise Exception("Tried to get video bytes before completing encoding")
+        if isinstance(self.dst_obj, io.BytesIO):
+            current_pos = self.dst_obj.tell()
+            self.dst_obj.seek(0)
+            data = self.dst_obj.read()
+            self.dst_obj.seek(current_pos)
+            return data
+        else:
+            with open(self.file_name, 'rb') as f:
+                return f.read()
     def terminate(self):
         if not self._terminated:
             self._terminated = True
@@ -54,12 +77,11 @@ class VideoFromFrame:
     def close(self):
         self.terminate()
         if self._was_temp:
-            pathlib.Path(self.file_name).unlink()
+            self.dst_obj.close()
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
     def write_frame(self, np_frame):
         assert (np_frame.shape[0] == self.shape[0]) and (np_frame.shape[1] == self.shape[1]) and (np_frame.shape[2] == self.shape[2])
-        #self.process.stdin.write(np_frame.astype(numpy.uint8).tobytes())
         frame = av.VideoFrame.from_ndarray(np_frame, format="rgb24")
         assert (frame.height == self.shape[0]) and (frame.width == self.shape[1])
         for packet in self.out_stream.encode(frame):
@@ -157,9 +179,7 @@ def downsample_it(filename, factor=2):
             while (in_frame:=in_stream.next_frame()) is not None:
                 out_file.write_frame(in_frame[::factor,::factor,:])
             out_file.terminate()
-            print(f"Terminated downsampling {filename} in {out_file.file_name}")
-            with open(out_file.file_name, 'rb') as f:
-                return f.read()
+            return out_file.bytes()
 
 def draw_landmarks_on_video(filename):
     with FrameGenStream(filename) as in_stream:
@@ -173,9 +193,7 @@ def draw_landmarks_on_video(filename):
                     drawn_frame = in_frame
                 out_file.write_frame(drawn_frame)
             out_file.terminate()
-            print(f"Terminated drawing landmarks on {filename} in {out_file.file_name}")
-            with open(out_file.file_name, 'rb') as f:
-                return f.read()
+            return out_file.bytes()
             
 def sample_at_fps(filename, fps):
     with FrameGenStream(filename, fix_fps = fps) as in_stream:
@@ -188,6 +206,7 @@ def sample_at_fps(filename, fps):
                 return f.read()
 def query_info(filename):
     with FrameGenStream(filename) as vid:
+            return out_file.bytes()
         return {"width" : vid.shape[1],
                 "height" : vid.shape[0],
                 "duration" : vid.duration,
@@ -232,4 +251,5 @@ def test_from_bytes(filename):
 
 
 
+            return out_file.bytes()
 
