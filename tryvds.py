@@ -152,12 +152,9 @@ class FrameGenStream:
     def ts_ms(self):
         return 1000 * (self.actual_frame / self.fps)
     
-def draw_video(file_name, fixed_frames = None, fixed_fps = None):
-    #process, width, height, frames, duration = make_video_stream(file_name)
+def draw_video(file_or_obj, fixed_frames = None, fixed_fps = None):
     got_frames = 0
-    #for frame in get_video_frame(process.stdout, width, height, frames):
-    print(f'File {file_name} is going to be played')
-    with FrameGenStream(file_name, fix_fps=fixed_fps, fix_frames=fixed_frames) as stream:
+    with FrameGenStream(file_or_obj, fix_fps=fixed_fps, fix_frames=fixed_frames) as stream:
         while (frame:=stream.next_frame()) is not None:
             cv2.imshow('Video Stream', numpy.flip(frame, axis=-1))
             # Break loop if 'q' is pressed
@@ -167,33 +164,17 @@ def draw_video(file_name, fixed_frames = None, fixed_fps = None):
             got_frames += 1
         cv2.destroyAllWindows()
     print(f"Frames got = {got_frames}, width = {stream.shape[1]}, height = {stream.shape[0]}, frames = {stream.max_frames}, Desired frames = {stream.desired_frames}, duration = {stream.duration}")
-    
-infile = '/home/weepingcoder/fks/vdos/one-downdog.mp4'
 
-def test_downsampling(filename):
-    with FrameGenStream(filename) as in_stream:
-        with VideoFromFrame(math.ceil(in_stream.shape[1]/2), math.ceil(in_stream.shape[0]/2), new_fps=in_stream.fps) as out_file:
-            while (in_frame:=in_stream.next_frame()) is not None:
-                out_file.write_frame(in_frame[::2,::2,:])
-            out_file.terminate()
-            with FrameGenStream(out_file.file_name) as processed_stream:
-                while (p_frame:=processed_stream.next_frame()) is not None:
-                    cv2.imshow('Downsampled Stream', numpy.flip(p_frame, axis=-1))
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        break
-                    time.sleep(processed_stream.duration/processed_stream.desired_frames)
-                cv2.destroyAllWindows()
-
-def downsample_it(filename, factor=2):
-    with FrameGenStream(filename) as in_stream:
+def downsample_it(file_or_obj, factor=2):
+    with FrameGenStream(file_or_obj) as in_stream:
         with VideoFromFrame(math.ceil(in_stream.shape[1]/factor), math.ceil(in_stream.shape[0]/factor), new_fps=in_stream.fps) as out_file:
             while (in_frame:=in_stream.next_frame()) is not None:
                 out_file.write_frame(in_frame[::factor,::factor,:])
             out_file.terminate()
             return out_file.bytes()
 
-def draw_landmarks_on_video(filename):
-    with FrameGenStream(filename) as in_stream:
+def draw_landmarks_on_video(file_or_obj):
+    with FrameGenStream(file_or_obj) as in_stream:
         with VideoFromFrame(in_stream.shape[1], in_stream.shape[0], new_fps=in_stream.fps) as out_file:
             detector=draw_landmarks.load_detector()
             while (in_frame:=in_stream.next_frame()) is not None:
@@ -206,18 +187,16 @@ def draw_landmarks_on_video(filename):
             out_file.terminate()
             return out_file.bytes()
             
-def sample_at_fps(filename, fps):
-    with FrameGenStream(filename, fix_fps = fps) as in_stream:
+def sample_at_fps(file_or_obj, fps):
+    with FrameGenStream(file_or_obj, fix_fps = fps) as in_stream:
         with VideoFromFrame(in_stream.shape[1], in_stream.shape[0], new_fps=fps) as out_file:
             while (in_frame:=in_stream.next_frame()) is not None:
                 out_file.write_frame(in_frame)
             out_file.terminate()
-            print(f"Terminated setting to {fps} fps of {filename} to {out_file.file_name}")
-            with open(out_file.file_name, 'rb') as f:
-                return f.read()
-def query_info(filename):
-    with FrameGenStream(filename) as vid:
             return out_file.bytes()
+
+def query_info(file_or_obj):
+    with FrameGenStream(file_or_obj) as vid:
         return {"width" : vid.shape[1],
                 "height" : vid.shape[0],
                 "duration" : vid.duration,
@@ -225,42 +204,12 @@ def query_info(filename):
                 "frames" : vid.max_frames}
         
 
-def sample_n_frames(filename, frames):
-    with FrameGenStream(filename, fix_frames = frames) as in_stream:
+def sample_n_frames(file_or_obj, frames):
+    with FrameGenStream(file_or_obj, fix_frames = frames) as in_stream:
         print(f"New video framerate after selecting{frames} frames is {frames/in_stream.duration}")
         with VideoFromFrame(in_stream.shape[1], in_stream.shape[0], new_fps=frames/in_stream.duration) as out_file:
             while (in_frame:=in_stream.next_frame()) is not None:
                 out_file.write_frame(in_frame)
             out_file.terminate()
-            print(f"Terminated selecting {frames} frames of {filename} to {out_file.file_name}")
-            with open(out_file.file_name, 'rb') as f:
-                return f.read()
-
-
-# Now try to make a file from a bytestream
-def test_from_bytes(filename):
-    with open(filename, 'rb') as f:
-        data = f.read()
-        with tempfile.NamedTemporaryFile(mode='wb') as infile:
-            print(f"Actual file is {filename}, file size is {len(data)}, temp file is {infile.name}")
-            infile.write(data)
-            draw_video(infile.name)
-
-
-            
-
-# Set up a video processing service
-
-# Takes in a json with two keys, service-id and args
-# service-id is the name of the service and args is a list of args to pass to that service
-# Returns either error or success, as a json with two keys, return-status return-value
-# if return-status is error, return-value will have the relevant description or dump
-# else return-status will be success and return-value will have whatever was returned by fxn
-# The arguments is a list of simple {type, data} pairs of serialized items (for now in json)
-# if the type is 'video' then the data will be, for now base64 encoded, blob of video file
-
-
-
-
             return out_file.bytes()
 
