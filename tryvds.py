@@ -91,9 +91,9 @@ class VideoFromFrame:
         return 1000 * (self.finx/self.fps)
 
 class FrameGenStream:
-    def __init__(self, file_name,
+    def __init__(self, file_or_obj,
                  fix_fps = None, fix_frames = None):
-        self.in_container = av.open(file_name, mode='r')
+        self.in_container = av.open(file_or_obj, mode='r')
         vid_stream = self.in_container.streams.video[0]
         vid_stream.thread_type = "AUTO" # makes it go faster
         self.shape = (int(vid_stream.height), int(vid_stream.width), 3)
@@ -119,6 +119,17 @@ class FrameGenStream:
         self.in_container.close()
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
+    def all_frames(self):
+        """Returns the entire video frames remaining to decode. Also will close `self` on return."""
+        frames=None
+        while (frame:=self.next_frame()) is not None:
+            frame=frame.reshape((1,)+frame.shape)
+            if frames is None:
+                frames=frame
+            else:
+                frames=numpy.concatenate((frames,frame))
+        self.close()
+        return frames
     def next_frame(self):
         if self.actual_frame >= self.max_frames:
             return None
