@@ -104,8 +104,9 @@ class FrameGenStream:
         in_frame = None
         while old_finx == self.finx:
             in_frame = None
-            in_frame = next(self._frame_genr)
-            if not in_frame:
+            try:
+                in_frame = next(self._frame_genr)
+            except StopIteration:
                 in_frame = None
                 break
             self.actual_frame += 1
