@@ -110,7 +110,7 @@ class FrameGenStream:
         else:
             self.desired_frames = self.max_frames
         if self.desired_frames > self.max_frames:
-            raise f"Desired frames is {self.desired_frames} which is greater than total frames that is {self.max_frames}"
+            raise Exception(f"Desired frames is {self.desired_frames} which is greater than total frames that is {self.max_frames}")
         self.finx = -1
         self.actual_frame = 0
     def __enter__(self):
