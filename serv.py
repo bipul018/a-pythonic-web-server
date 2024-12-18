@@ -91,7 +91,11 @@ def register_task(name: str, **kwargs):
         @functools.wraps(func)
         async def wrapped_func(*args, **kwargs):
             try:
-                return await func(*args, **kwargs)
+                ans = await func(*args, **kwargs)
+                if ans is None:
+                    return {'status': 'Success'}
+                return {'status' : 'Success',
+                        'value' : ans}
             except Exception as e:
                 if log_traceback_on_error:
                     print("Exception:", repr(e))
@@ -106,7 +110,6 @@ def register_task(name: str, **kwargs):
 async def play_video_task(videoUpload: Optional[fastapi.UploadFile]=None, frames: Optional[int]=None, fps: Optional[int]=None):
     with await VideoArgAsFile(videoUpload) as infile:
         tryvds.draw_video(infile, fixed_frames=frames, fixed_fps=fps)
-    return {'status' : f'Success'}
 
 @register_task("downsample_it")
 async def downsample_video_task(video: Optional[fastapi.UploadFile]=None, factor: int = 2):
@@ -114,8 +117,7 @@ async def downsample_video_task(video: Optional[fastapi.UploadFile]=None, factor
         outdat = tryvds.downsample_it(infile, factor)
         update_video_bytes(outdat)
         print(f"The result of downsampling of size {len(outdat)}")
-        return {'status' : 'Success',
-                'value' : f'Downsampled file size is {len(outdat)}'}
+        return f'Downsampled file size is {len(outdat)}'
 
 @register_task("draw_landmarks")
 async def draw_landmarks_on_video_task(video: Optional[fastapi.UploadFile]=None):
@@ -123,52 +125,52 @@ async def draw_landmarks_on_video_task(video: Optional[fastapi.UploadFile]=None)
         outdat = tryvds.draw_landmarks_on_video(infile)
         update_video_bytes(outdat)
         print(f"The result of drawing landmarks was of size {len(outdat)}")
-        return {'status' : 'Success',
-                'value' : f'file size is {len(outdat)}'}
+        return f'file size is {len(outdat)}'
 
 @register_task("select_at_fps")
 async def select_frames_at_fps_task(video: Optional[fastapi.UploadFile]=None, fps: int = 1):
     with await VideoArgAsFile(video) as infile:
         outdat = tryvds.sample_at_fps(infile, fps)
         update_video_bytes(outdat)
-        return {'status' : 'Success',
-                'value' : f'FPS resampled file size is {len(outdat)}'}
+        return f'FPS resampled file size is {len(outdat)}'
 
 @register_task("select_frames")
 async def select_fixed_frames_task(video: Optional[fastapi.UploadFile]=None, frames: int = 21):
     with await VideoArgAsFile(video) as infile:
         outdat = tryvds.sample_n_frames(infile, frames)
         update_video_bytes(outdat)
-        return {'status' : 'Success',
-                'value' : f'After selecting frames, file size is {len(outdat)}'}
+        return f'After selecting frames, file size is {len(outdat)}'
 
 @register_task("query_info")
 async def query_video_info_task(video: Optional[fastapi.UploadFile]=None):
     with await VideoArgAsFile(video) as infile:
         anses = tryvds.query_info(infile)
-        return {'status' : 'Success',
-                'value' : anses}
+        return anses
 
 @register_task("clear_last_video")
 async def clear_last_video_saved_task():
     prev_value = latest_video_bytes
     update_video_bytes(None)
-    return {'status' : 'Success',
-            'value' : f'Cleared video file size was {len(prev_value)}'}
+    return f'Cleared video file size was {len(prev_value)}'
 
 @register_task("save_video")
 async def save_video_for_later_task(video: fastapi.UploadFile):
     data = await video.read()
     update_video_bytes(data)
-    return {'status' : 'Success',
-            'value' : f'Saved video size is {len(data)}'}
+    return f'Saved video size is {len(data)}'
     
 @register_task("restore_video")
 async def restore_previous_video_task():
     restore_video_bytes()
     old_bytes = latest_video_bytes
-    return {'status' : 'Success',
-            'value' : f'Cleared video file size was {len(old_bytes)}'}
+    return f'Cleared video file size was {len(old_bytes)}'
+
+@register_task("get_video")
+async def get_last_video_as_bytes():
+    if latest_video_bytes is None:
+        raise Exception("Cannot return video when none has been saved")
+    return {"type" : "video/mp4",
+            "bytes" : base64.b64encode(latest_video_bytes).decode('utf-8')}
 
 #@app.websocket("/ws")
 #async def websocket_endpoint(websocket: WebSocket):
@@ -208,6 +210,5 @@ async def restore_previous_video_task():
 
 # Start server
 if __name__ == "__main__":
-    # uvicorn.run(app, host="0.0.0.0", port=8080)
     uvicorn.run("serv:app", host="0.0.0.0", port=8080, reload=True)
     
