@@ -107,6 +107,7 @@ def register_task(name: str, **kwargs):
         @functools.wraps(func)
         async def wrapped_func(*args, **kwargs):
             try:
+                print(f"The args are {args} and kwargs are {kwargs} for the incoming request.")
                 ans = await func(*args, **kwargs)
                 if ans is None:
                     return {'status': 'Success'}
@@ -171,6 +172,8 @@ async def clear_last_video_saved_task():
 
 @register_task("save_video")
 async def save_video_for_later_task(video: fastapi.UploadFile):
+    # TODO:: The input video might not be in mp4 format at all !!! Need to
+    #        either detect that, or always just save as a mp4 format video
     data = await video.read()
     update_video_bytes(data)
     return f'Saved video size is {len(data)}'
