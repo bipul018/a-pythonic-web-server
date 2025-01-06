@@ -12,10 +12,14 @@ let python =
           };
       in
         pkgs.python311Full.override {inherit packageOverrides; self = python;};
-in pkgs.mkShell {
+in
+pkgs.mkShell {
   packages = [
-    pkgs.python311Full
+    #pkgs.python311Full
     pkgs.python311Packages.virtualenv
+    pkgs.python311Packages.pip
+
+    pkgs.python311Packages.fastapi
 
     pkgs.python311Packages.tensorflow
     pkgs.python311Packages.keras
@@ -32,7 +36,6 @@ in pkgs.mkShell {
     # all pytorch stuff from colab notebook
     pkgs.python311Packages.torch
     pkgs.python311Packages.torchvision
-    pkgs.python311Packages.fastapi
     pkgs.python311Packages.pandas
     pkgs.python311Packages.pyarrow
     pkgs.python311Packages.fastparquet
@@ -49,22 +52,20 @@ in pkgs.mkShell {
     pkgs.zlib
     pkgs.glib
     pkgs.wget
+    pkgs.git
     pkgs.ffmpeg
   ];
   propagatedBuildInputs = [
     #pkgs.libffi
-    pkgs.libGL
+    #pkgs.libGL
   ];
-  
   buildInputs = [
     #pkgs.libffi
   ];
   inputsFrom = [
     # pkgs.gcc
-    pkgs.glibc
-
-    pkgs.gcc
-    pkgs.git
+    #pkgs.glibc
+    #pkgs.gcc
   ];
 
   # inputsFrom = [ pkgs.hello pkgs.gnutar ];
@@ -75,7 +76,7 @@ in pkgs.mkShell {
   #export LD_LIBRARY_PATH=${pkgs.libGL}/lib:$LD_LIBRARY_PATH
   #export LD_LIBRARY_PATH=${pkgs.zlib}/lib:$LD_LIBRARY_PATH
   #export LD_LIBRARY_PATH=${pkgs.glib}/lib:$LD_LIBRARY_PATH
-  export LD_LIBRARY_PATH=${pkgs.wayland}/lib:$LD_LIBRARY_PATH
+  #export LD_LIBRARY_PATH=${pkgs.wayland}/lib:$LD_LIBRARY_PATH
   unset WAYLAND_DISPLAY
   alias py=python
   export TF_CPP_MIN_LOG_LEVEL=1

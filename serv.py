@@ -9,6 +9,7 @@ import traceback
 import fastapi
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse, StreamingResponse, Response
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
 # import bson
@@ -28,6 +29,21 @@ class ConnectionManager:
 
 # FastAPI Application
 app = FastAPI()
+
+# Add the frontend port service as a safe CORS thing
+#  TODO:: Find out if when served through some public name, still it works or not??
+origins = [
+    "http://localhost:8000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 connection_manager = ConnectionManager()
 
 # Service Instances
