@@ -144,6 +144,11 @@ async def draw_landmarks_on_video_task(video: Optional[fastapi.UploadFile]=None)
         print(f"The result of drawing landmarks was of size {len(outdat)}")
         return f'file size is {len(outdat)}'
 
+@register_task("stsae_gcn_prediction")
+async def predict_using_stsae_gcn_on_video_task(video: Optional[fastapi.UploadFile]=None):
+    with await VideoArgAsFile(video) as infile:
+        return tryvds.infer_stsae_prediction_on_video(infile)
+    
 @register_task("select_at_fps")
 async def select_frames_at_fps_task(video: Optional[fastapi.UploadFile]=None, fps: int = 1):
     with await VideoArgAsFile(video) as infile:
