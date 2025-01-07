@@ -2,6 +2,7 @@ import asyncio
 import io
 import av
 import numpy
+import torch
 import cv2
 import subprocess
 import time
@@ -57,6 +58,27 @@ def draw_landmarks_on_video(file_or_obj):
                 out_file.write_frame(drawn_frame)
             out_file.terminate()
             return out_file.bytes()
+
+import run_stsae_gcn        
+
+def infer_stsae_prediction_on_video(file_or_obj):
+    context_size = 20
+    with FrameGenStream(file_or_obj, fix_frames=context_size) as in_stream:
+        detector=draw_landmarks.load_detector()
+        all_pts = torch.zeros((context_size,33,3)) #shape of input
+        while (in_frame:=in_stream.next_frame()) is not None:
+            # We dont care about exceptions here
+            _,curr_pts=draw_landmarks.run_on_image(detector, in_frame, int(in_stream.ts_ms()))
+            # TODO:: See if this .finx is correct
+            all_pts[in_stream.finx] = torch.tensor(curr_pts)
+        # Infer the yoga and return a friendly string
+        with torch.no_grad():
+            inputs = all_pts.permute((2,0,1)).unsqueeze(0)
+            outputs = run_stsae_gcn.model(inputs)
+            maxval,pose_inx = torch.max(torch.softmax(outputs,1), 1)
+            maxval = maxval.item() * 100
+        return f"The predicted yoga pose is `{run_stsae_gcn.poses_list[pose_inx]} ({maxval:.1f}%)`" 
+                
             
 def sample_at_fps(file_or_obj, fps):
     with FrameGenStream(file_or_obj, fix_fps = fps) as in_stream:
