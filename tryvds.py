@@ -68,9 +68,13 @@ def infer_stsae_prediction_on_video(file_or_obj):
         all_pts = torch.zeros((context_size,33,3)) #shape of input
         while (in_frame:=in_stream.next_frame()) is not None:
             # We dont care about exceptions here
-            _,curr_pts=draw_landmarks.run_on_image(detector, in_frame, int(in_stream.ts_ms()))
-            # TODO:: See if this .finx is correct
-            all_pts[in_stream.finx] = torch.tensor(curr_pts)
+            try:
+                _,curr_pts=draw_landmarks.run_on_image(detector, in_frame, int(in_stream.ts_ms()))
+                # TODO:: See if this .finx is correct
+                all_pts[in_stream.finx] = torch.tensor(curr_pts)
+            except Exception as e:
+                print("Exception:", repr(e), " occured for drawing landmark on frame ", in_stream.finx)
+                in_stream.finx -= 1
         # Infer the yoga and return a friendly string
         with torch.no_grad():
             inputs = all_pts.permute((2,0,1)).unsqueeze(0)
