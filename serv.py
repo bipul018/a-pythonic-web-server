@@ -7,25 +7,13 @@ from contextlib import contextmanager
 import traceback
 
 import fastapi
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Depends, File, UploadFile
 from fastapi.responses import HTMLResponse, StreamingResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
-# import bson
-import json as bson
+import json
 
-# WebSocket Connection Manager
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: list[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
 
 # FastAPI Application
 app = FastAPI()
@@ -44,8 +32,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-connection_manager = ConnectionManager()
-
 # Service Instances
 import tryvds
 import tempfile
@@ -54,17 +40,6 @@ import tempfile
 async def root():
     with open('test1.html', 'r') as file:
         return file.read()
-
-@app.get("/jpt", response_class=HTMLResponse)
-async def jpt():
-    return """
-    <html>
-    <head>
-    <title> Hello World </title>
-    </head>
-    <body> Hello world, this is the jpt file </body>
-    </html>
-    """
 
 # Pseudo session mechanism
 # stores the latest video object returned by any one of the video returning fxns
@@ -196,41 +171,47 @@ async def get_last_video_as_bytes():
     return {"type" : "video/mp4",
             "bytes" : base64.b64encode(latest_video_bytes).decode('utf-8')}
 
-#@app.websocket("/ws")
-#async def websocket_endpoint(websocket: WebSocket):
-#    await connection_manager.connect(websocket)
-#    try:
-#        while True:
-#            # Receive BSON-encoded message
-#            #bson_message = await websocket.receive_bytes()
-#            bson_message = await websocket.receive_text()
-#            message = bson.loads(bson_message)
-#
-#            # Route to appropriate service based on message type
-#            service_type = message.get('service', 'unknown')
-#            
-#            result = None
-#            if service_type == 'image_processing':
-#                result = await image_service.process_image(message.get('image'))
-#            
-#            elif service_type == 'data_analytics':
-#                result = await analytics_service.analyze_data(message.get('data'))
-#            
-#            elif service_type == 'ml_training':
-#                result = await training_service.start_training(message.get('config'))
-#            
-#            else:
-#                result = {'error': 'Unknown service'}
-#
-#            # Send response back as BSON
-#            response = bson.dumps({
-#                'service': service_type,
-#                'result': result
-#            })
-#            await websocket.send_bytes(response)
-#
-#    except WebSocketDisconnect:
-#        connection_manager.disconnect(websocket)
+import numpy
+import cv2
+from features.service import PerFrameDetector
+@app.websocket("/wsprocess_frame")
+async def websocket_process_frame(websocket: WebSocket):
+    await websocket.accept()
+    print("WebSocket connection established.")
+    decoder = json.JSONDecoder()
+    stage_detector = PerFrameDetector()
+    def decode_msg(msg):
+        try:
+            utf8_msg = msg.decode('utf-8')
+            bin_data = b''
+        except UnicodeDecodeError as e:
+            bin_data = msg[e.start:]
+            utf8_msg = msg[:e.start].decode('utf-8')
+        obj, inx = decoder.raw_decode(utf8_msg)
+        trailer = utf8_msg[inx:].encode()
+        return obj, trailer+bin_data
+    try:
+        while True:
+            # Receive binary frame data
+            metadata, data = decode_msg(await websocket.receive_bytes())
+            ts = metadata['timestamp']
+            # Convert bytes to a numpy array
+            np_image = cv2.imdecode(numpy.frombuffer(data, numpy.uint8), cv2.IMREAD_COLOR)
+            curr_state = stage_detector.add_frame(np_image, ts_ms=ts)
+            message = {"timestamp": ts,
+                       "yoga_state" : f"{curr_state}"}
+            message = json.dumps(message)
+            # print(message)
+            await websocket.send_text(message)
+            #await websocket.send_text(f"Frame processed successfully, width = {processed_frame.shape[1]} and height = {processed_frame.shape[0]}")
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        print("Exception during websocket processing:", repr(e))
+        print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
+    finally:
+        await websocket.close()
+        print("WebSocket connection closed.")
 
 # Start server
 if __name__ == "__main__":
