@@ -197,7 +197,13 @@ async def websocket_process_frame(websocket: WebSocket):
         print("Exception during websocket processing:", repr(e))
         print("Stacktrace of exception:\n", traceback.print_tb(e.__traceback__))
     finally:
-        await websocket.close()
+        # TODO:: Find out if this interferes with the async fxns not awaited above
+        service_provider.on_close()
+        try:
+            # TODO:: Find out why this throws exception
+            await websocket.close()
+        except Exception:
+            pass
         print("WebSocket connection closed.")
 
 # Start server
