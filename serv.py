@@ -171,13 +171,19 @@ async def get_last_video_as_bytes():
     return {"type" : "video/mp4",
             "bytes" : base64.b64encode(latest_video_bytes).decode('utf-8')}
 
+
+import features.service
+from features.service import ConnectionHandler
+features.service.update_video_bytes = update_video_bytes
+
 @app.websocket("/wsprocess_frame")
 async def websocket_process_frame(websocket: WebSocket):
     await websocket.accept()
     print("WebSocket connection established.")
     decoder = json.JSONDecoder()
-    stage_detector = PerFrameDetector()
+    service_provider = ConnectionHandler()
     def decode_msg(msg):
+        #print(f"Decoding message ... ")
         try:
             utf8_msg = msg.decode('utf-8')
             bin_data = b''
@@ -189,8 +195,15 @@ async def websocket_process_frame(websocket: WebSocket):
         return obj, trailer+bin_data
     try:
         while True:
-            # Receive binary frame data
+            #print(f"Partitioning metadata ... ")
             metadata, data = decode_msg(await websocket.receive_bytes())
+            #print(f"Dumped metadata : {metadata}")
+            service_provider.new_data(metadata, data) # async fxn
+            # Check if any pending replies are there, if so, send them one by one
+            for reply in service_provider.pop_replies():
+                reply = json.dumps(reply)
+                print(f"replying with {reply}....")
+                await websocket.send_text(reply) # async fxn
     except WebSocketDisconnect:
         pass
     except Exception as e:
