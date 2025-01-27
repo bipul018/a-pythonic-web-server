@@ -20,6 +20,31 @@ from video_rw import VideoFromFrameCV as VideoFromFrame
 from video_rw import FrameGenStreamAV as FrameGenStream
 #from video_rw import FrameGenStreamCV as FrameGenStream
 
+# Given a list of frames to clip, which are in format [begin, end),
+# Return a list of video bytes representing the clips
+def clip_videos_frames(file_or_obj, clip_frames):
+    with FrameGenStream(file_or_obj) as stream:
+        (height, width, _) = stream.shape
+        fps = stream.fps
+        out_streams = []
+        for _ in clip_frames:
+            out_streams.append(VideoFromFrame(width=width, height=height, new_fps=fps))
+
+        # For each frame generated, see if it lies in the range
+        while (frame:=stream.next_frame()) is not None:
+            for ((beg, end), ostr) in zip(clip_frames, out_streams):
+                if (stream.finx >= beg) and (stream.finx < end):
+                    ostr.write_frame(frame)
+
+        outputs = []
+        for ostr in out_streams:
+            ostr.terminate()
+            outputs.append(ostr.bytes())
+            ostr.close()
+        return outputs
+    
+
+
 def draw_video(file_or_obj, fixed_frames = None, fixed_fps = None):
     got_frames = 0
     with FrameGenStream(file_or_obj, fix_fps=fixed_fps, fix_frames=fixed_frames) as stream:
