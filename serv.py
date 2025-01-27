@@ -171,9 +171,6 @@ async def get_last_video_as_bytes():
     return {"type" : "video/mp4",
             "bytes" : base64.b64encode(latest_video_bytes).decode('utf-8')}
 
-import numpy
-import cv2
-from features.service import PerFrameDetector
 @app.websocket("/wsprocess_frame")
 async def websocket_process_frame(websocket: WebSocket):
     await websocket.accept()
@@ -194,16 +191,6 @@ async def websocket_process_frame(websocket: WebSocket):
         while True:
             # Receive binary frame data
             metadata, data = decode_msg(await websocket.receive_bytes())
-            ts = metadata['timestamp']
-            # Convert bytes to a numpy array
-            np_image = cv2.imdecode(numpy.frombuffer(data, numpy.uint8), cv2.IMREAD_COLOR)
-            curr_state = stage_detector.add_frame(np_image, ts_ms=ts)
-            message = {"timestamp": ts,
-                       "yoga_state" : f"{curr_state}"}
-            message = json.dumps(message)
-            # print(message)
-            await websocket.send_text(message)
-            #await websocket.send_text(f"Frame processed successfully, width = {processed_frame.shape[1]} and height = {processed_frame.shape[0]}")
     except WebSocketDisconnect:
         pass
     except Exception as e:
