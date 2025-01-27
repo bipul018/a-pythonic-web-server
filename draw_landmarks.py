@@ -5,12 +5,13 @@ import numpy
 mp_pose = mpipe.solutions.pose
 mp_drawing = mpipe.solutions.drawing_utils
 
+model_asset_path = 'pose_landmarker_full.task'
 BaseOptions = mpipe.tasks.BaseOptions
 PoseLandmarker = mpipe.tasks.vision.PoseLandmarker
 PoseLandmarkerOptions = mpipe.tasks.vision.PoseLandmarkerOptions
 VisionRunningMode = mpipe.tasks.vision.RunningMode
 options = PoseLandmarkerOptions(
-    base_options=BaseOptions(model_asset_path='pose_landmarker_lite.task'),
+    base_options=BaseOptions(model_asset_path=model_asset_path),
     running_mode=VisionRunningMode.VIDEO)
 
 def load_detector():
@@ -52,7 +53,7 @@ def run_on_image(detector, rgb_image, ts:int, also_draw=True):
             pts.append([pt.x, pt.y, pt.z])
         pts = numpy.array(pts)
         return rgb_image, pts
-    raise Exception(f"Couldnot detect any landmarks in frame at time {ts/1000}")
+    raise Exception(f"No landmarks")
 
 
 
