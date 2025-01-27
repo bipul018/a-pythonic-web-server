@@ -211,7 +211,7 @@ def clip_video_with_ffmpeg(video_path, segment_info, output_dir):
 def segment_video(video_path, 
                          movement_threshold=0.3, 
                          hold_threshold=0.1, 
-                         hold_duration=30):
+                         hold_duration=30, return_feats=False):
     """
     Analyze video states and return state history
     
@@ -247,7 +247,12 @@ def segment_video(video_path,
     for frame_velocity in velocity_magnitude:
         state_machine.process_frame(frame_velocity)
 
-    return state_machine.get_state_history()
+    if return_feats:
+        return (state_machine.get_state_history(), features, velocity_magnitude)
+    else:
+        return state_machine.get_state_history()
+
+
 
 
 if __name__=="__main__":

@@ -5,7 +5,8 @@ from typing import Tuple, Optional
 import time
 
 class PoseExtractor:
-    def __init__(self):
+    def __init__(self, rgb_mode=False):
+        self.rgb_mode=rgb_mode
         self.mp_pose = mp.solutions.pose
         self.mp_drawing = mp.solutions.drawing_utils
         self.pose = self.mp_pose.Pose(
@@ -16,22 +17,30 @@ class PoseExtractor:
             min_tracking_confidence=0.5
         )
 
-    def process_frame(self, frame: np.ndarray) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+    def process_frame(self, frame: np.ndarray, also_annotate: bool = True) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         """Process a single frame and return the visualization and 3D points."""
-        # Convert BGR to RGB
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # Convert BGR to RGB only if not already
+        if self.rgb_mode:
+            rgb_frame = frame
+            pass
+        else:
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            pass
         
         # Process the frame
         results = self.pose.process(rgb_frame)
         
         # Create visualization
-        annotated_frame = frame.copy()
-        if results.pose_landmarks:
-            self.mp_drawing.draw_landmarks(
-                annotated_frame,
-                results.pose_landmarks,
-                self.mp_pose.POSE_CONNECTIONS
-            )
+        if also_annotate:
+            annotated_frame = frame.copy()
+            if results.pose_landmarks:
+                self.mp_drawing.draw_landmarks(
+                    annotated_frame,
+                    results.pose_landmarks,
+                    self.mp_pose.POSE_CONNECTIONS
+                )
+        else:
+            annotated_frame = None    
         
         # Extract 3D points if available
         if results.pose_world_landmarks:
