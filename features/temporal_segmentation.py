@@ -253,8 +253,50 @@ def segment_video(video_path,
         return state_machine.get_state_history()
 
 
+def segment_features(features, 
+                         movement_threshold=0.3, 
+                         hold_threshold=0.1, 
+                         hold_duration=30, return_feats=False):
+    """
+    Analyze video states and return state history
+    
+    Args:
+        features (numpy array): The Frames * Landmarks * (x,y,z) feature array
+        movement_threshold (float, optional): Threshold for detecting movement. Defaults to 0.3.
+        hold_threshold (float, optional): Threshold for detecting hold. Defaults to 0.1.
+        hold_duration (int, optional): Duration to consider a hold state. Defaults to 30.
+    
+    Returns:
+        dict: State history mapping start frames to (state, duration)
+    """
+    extractor = BiomechanicalFeatureExtractor()
+
+    # RETURN np.ndarray( TOTAL_NUMBER_OF_FRAMES_IN_VIDEO, 33(JOINTS), 3(x,y,z)) ,i.e. (Number_frames, 33, 3) in numpy array
+    features = torch.from_numpy(features)
+    
+    velocity = extractor.extract_features(features)["Joint Acceleration"]
+
+    v = torch.sqrt(velocity[..., 0]**2 + velocity[...,1]**2 + velocity[...,2]**2)
+    velocity_magnitude = v.sum(dim=-1) 
+    velocity_magnitude = velocity_magnitude.clamp_(min=0, max=1.5).pow_(2).clamp_(max=1.5)
+    # velocity_magnitude = velocity_magnitude
+
+    state_machine = YogaPoseStateMachine(
+        movement_threshold=movement_threshold,
+        hold_threshold=hold_threshold,
+        hold_duration=hold_duration 
+    )
+
+    for frame_velocity in velocity_magnitude:
+        state_machine.process_frame(frame_velocity)
+
+    if return_feats:
+        return (state_machine.get_state_history(), features, velocity_magnitude)
+    else:
+        return state_machine.get_state_history()
 
 
 if __name__=="__main__":
     print(segment_video('tiktok_data/mountain/first.mp4'))
+    
     
