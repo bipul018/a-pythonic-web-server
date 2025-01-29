@@ -13,7 +13,7 @@ import numpy
 
 from video_rw.video_rw import *
 
-from tryvds import clip_videos_frames
+from video_tasks import clip_videos_frames
 
 
 EXPECT_WEBCAM_ONLY = False

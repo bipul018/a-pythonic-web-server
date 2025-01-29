@@ -10,11 +10,7 @@ import asyncio
 import cv2
 import numpy
 
-from video_rw.video_rw import *
-
-from tryvds import clip_videos_frames
 import run_stsae_gcn
-
 
 DEBUGGING_MODE = False
 

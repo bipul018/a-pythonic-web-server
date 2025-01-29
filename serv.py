@@ -33,7 +33,7 @@ app.add_middleware(
 )
 
 # Service Instances
-import tryvds
+import video_tasks
 import tempfile
 
 @app.get("/", response_class=HTMLResponse)
@@ -70,15 +70,15 @@ class TaskItem(BaseModel):
     name: str
     fxn: Callable[..., Any]
 
-tasks: List[TaskItem] = []    
+curr_task_list: List[TaskItem] = []    
 log_traceback_on_error = True
 import functools
 def register_task(name: str, **kwargs):
     def decorator(func: Callable[..., Any]):
-        global tasks
+        global curr_task_list
         endpoint = f"/task/{name}"
         tsk = TaskItem(name=name, fxn=func)
-        tasks.append(tsk)
+        curr_task_list.append(tsk)
         @functools.wraps(func)
         async def wrapped_func(*args, **kwargs):
             try:
@@ -101,12 +101,12 @@ def register_task(name: str, **kwargs):
 @register_task("play_video")
 async def play_video_task(videoUpload: Optional[fastapi.UploadFile]=None, frames: Optional[int]=None, fps: Optional[int]=None):
     with await VideoArgAsFile(videoUpload) as infile:
-        tryvds.draw_video(infile, fixed_frames=frames, fixed_fps=fps)
+        video_tasks.draw_video(infile, fixed_frames=frames, fixed_fps=fps)
 
 @register_task("downsample_it")
 async def downsample_video_task(video: Optional[fastapi.UploadFile]=None, factor: int = 2):
     with await VideoArgAsFile(video) as infile:
-        outdat = tryvds.downsample_it(infile, factor)
+        outdat = video_tasks.downsample_it(infile, factor)
         update_video_bytes(outdat)
         print(f"The result of downsampling of size {len(outdat)}")
         return f'Downsampled file size is {len(outdat)}'
@@ -114,7 +114,7 @@ async def downsample_video_task(video: Optional[fastapi.UploadFile]=None, factor
 @register_task("draw_landmarks")
 async def draw_landmarks_on_video_task(video: Optional[fastapi.UploadFile]=None):
     with await VideoArgAsFile(video) as infile:
-        outdat = tryvds.draw_landmarks_on_video(infile)
+        outdat = video_tasks.draw_landmarks_on_video(infile)
         update_video_bytes(outdat)
         print(f"The result of drawing landmarks was of size {len(outdat)}")
         return f'file size is {len(outdat)}'
@@ -122,26 +122,26 @@ async def draw_landmarks_on_video_task(video: Optional[fastapi.UploadFile]=None)
 @register_task("stsae_gcn_prediction")
 async def predict_using_stsae_gcn_on_video_task(video: Optional[fastapi.UploadFile]=None):
     with await VideoArgAsFile(video) as infile:
-        return tryvds.infer_stsae_prediction_on_video(infile)
+        return video_tasks.infer_stsae_prediction_on_video(infile)
     
 @register_task("select_at_fps")
 async def select_frames_at_fps_task(video: Optional[fastapi.UploadFile]=None, fps: int = 1):
     with await VideoArgAsFile(video) as infile:
-        outdat = tryvds.sample_at_fps(infile, fps)
+        outdat = video_tasks.sample_at_fps(infile, fps)
         update_video_bytes(outdat)
         return f'FPS resampled file size is {len(outdat)}'
 
 @register_task("select_frames")
 async def select_fixed_frames_task(video: Optional[fastapi.UploadFile]=None, frames: int = 21):
     with await VideoArgAsFile(video) as infile:
-        outdat = tryvds.sample_n_frames(infile, frames)
+        outdat = video_tasks.sample_n_frames(infile, frames)
         update_video_bytes(outdat)
         return f'After selecting frames, file size is {len(outdat)}'
 
 @register_task("query_info")
 async def query_video_info_task(video: Optional[fastapi.UploadFile]=None):
     with await VideoArgAsFile(video) as infile:
-        anses = tryvds.query_info(infile)
+        anses = video_tasks.query_info(infile)
         return anses
 
 @register_task("clear_last_video")

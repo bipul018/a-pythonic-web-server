@@ -1,3 +1,6 @@
+# This is a file that specifically works with binary video byte input/output
+#   Generally meant to be registered as a web task 
+
 import asyncio
 import io
 import av
