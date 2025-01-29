@@ -83,7 +83,7 @@ def draw_landmarks_on_video(file_or_obj):
             out_file.terminate()
             return out_file.bytes()
 
-import run_stsae_gcn        
+from classification import model_use as stsae_gcn
 
 def infer_stsae_prediction_on_video(file_or_obj):
     context_size = 20
@@ -102,10 +102,10 @@ def infer_stsae_prediction_on_video(file_or_obj):
         # Infer the yoga and return a friendly string
         with torch.no_grad():
             inputs = all_pts.permute((2,0,1)).unsqueeze(0)
-            outputs = run_stsae_gcn.model(inputs)
+            outputs = stsae_gcn.model(inputs)
             maxval,pose_inx = torch.max(torch.softmax(outputs,1), 1)
             maxval = maxval.item() * 100
-        return f"The predicted yoga pose is `{run_stsae_gcn.poses_list[pose_inx]} ({maxval:.1f}%)`" 
+        return f"The predicted yoga pose is `{stsae_gcn.poses_list[pose_inx]} ({maxval:.1f}%)`" 
                 
             
 def sample_at_fps(file_or_obj, fps):

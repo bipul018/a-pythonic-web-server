@@ -6,7 +6,7 @@ import torch
 import asyncio
 import numpy
 
-import run_stsae_gcn
+from classification import model_use as stsae_gcn
 
 from .misc import map_to_range, dprint
 
@@ -58,12 +58,12 @@ class Predictor:
             dprint(f"The type of tensor is {self.sampled_frames.dtype}")
             # reply with prediction
             inputs = self.sampled_frames.permute((2,0,1)).unsqueeze(0)
-            outputs = run_stsae_gcn.model(inputs)
+            outputs = stsae_gcn.model(inputs)
             # maxval,pose_inx = torch.max(torch.softmax(outputs,1), 1)
             # maxval = maxval.item() * 100
             maxvals, pose_inxs = torch.topk(torch.softmax(outputs,1), k=4, dim=1)
             maxvals = [round(v.item(), 2) for v in list(maxvals.squeeze() * 100)]
-            names = [[run_stsae_gcn.poses_list[idx] for idx in row] for row in pose_inxs]
+            names = [[stsae_gcn.poses_list[idx] for idx in row] for row in pose_inxs]
 
             # calculate the suggestions
             suggestion = "Just enjoy your life"
