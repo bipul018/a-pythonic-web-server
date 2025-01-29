@@ -10,11 +10,8 @@ import torch
 import asyncio
 import cv2
 import numpy
-#from video_rw import VideoFromFrameAV as VideoFromFrame
-from video_rw import VideoFromFrameCV as VideoFromFrame
 
-from video_rw import FrameGenStreamAV as FrameGenStream
-#from video_rw import FrameGenStreamCV as FrameGenStream
+from video_rw.video_rw import *
 
 from tryvds import clip_videos_frames
 
