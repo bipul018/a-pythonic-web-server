@@ -5,7 +5,7 @@ import numpy
 mp_pose = mpipe.solutions.pose
 mp_drawing = mpipe.solutions.drawing_utils
 
-model_asset_path = 'pose_landmarker_full.task'
+model_asset_path = 'landmark/pose_landmarker_full.task'
 BaseOptions = mpipe.tasks.BaseOptions
 PoseLandmarker = mpipe.tasks.vision.PoseLandmarker
 PoseLandmarkerOptions = mpipe.tasks.vision.PoseLandmarkerOptions

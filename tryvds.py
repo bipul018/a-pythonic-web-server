@@ -9,7 +9,8 @@ import time
 import tempfile
 import pathlib
 import fractions
-import draw_landmarks
+from landmark import drawing_landmarks as landmark_drawer
+# import draw_landmarks
 
 import math
 
@@ -73,10 +74,10 @@ def downsample_it(file_or_obj, factor=2):
 def draw_landmarks_on_video(file_or_obj):
     with FrameGenStream(file_or_obj) as in_stream:
         with VideoFromFrame(in_stream.shape[1], in_stream.shape[0], new_fps=in_stream.fps) as out_file:
-            detector=draw_landmarks.load_detector()
+            detector=landmark_drawer.load_detector()
             while (in_frame:=in_stream.next_frame()) is not None:
                 try:
-                    drawn_frame,_=draw_landmarks.run_on_image(detector, in_frame, int(in_stream.ts_ms()))
+                    drawn_frame,_=landmark_drawer.run_on_image(detector, in_frame, int(in_stream.ts_ms()))
                 except Exception as e:
                     print("Exception:", repr(e), " occured for drawing landmark on frame ", out_file.finx)
                     drawn_frame = in_frame
@@ -89,12 +90,12 @@ import run_stsae_gcn
 def infer_stsae_prediction_on_video(file_or_obj):
     context_size = 20
     with FrameGenStream(file_or_obj, fix_frames=context_size) as in_stream:
-        detector=draw_landmarks.load_detector()
+        detector=landmark_drawer.load_detector()
         all_pts = torch.zeros((context_size,33,3)) #shape of input
         while (in_frame:=in_stream.next_frame()) is not None:
             # We dont care about exceptions here
             try:
-                _,curr_pts=draw_landmarks.run_on_image(detector, in_frame, int(in_stream.ts_ms()))
+                _,curr_pts=landmark_drawer.run_on_image(detector, in_frame, int(in_stream.ts_ms()))
                 # TODO:: See if this .finx is correct
                 all_pts[in_stream.finx] = torch.tensor(curr_pts)
             except Exception as e:

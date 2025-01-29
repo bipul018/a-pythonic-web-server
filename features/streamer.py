@@ -1,12 +1,11 @@
-from . import biomechanical_features as bio_feats
-from . import temporal_segmentation as temp_seg
-from . import keypoint_extractor as key_extr
+from landmark import biomechanical_features as bio_feats
+from landmark import temporal_segmentation as temp_seg
+from landmark import keypoint_extractor as key_extr
 
 import traceback
 import io
 import tempfile
 import torch
-import draw_landmarks
 import asyncio
 import cv2
 import numpy
@@ -20,7 +19,7 @@ from tryvds import clip_videos_frames
 import run_stsae_gcn
 
 
-DEBUGGING_MODE = True
+DEBUGGING_MODE = False
 
 if DEBUGGING_MODE:
     # TODO:: Only a debugging thing, no need to commit this
@@ -118,7 +117,6 @@ class Predictor:
 # A class that helps one partition the video into states
 class StreamingSegmentor:
     def __init__(self, movement_threshold=0.3, hold_threshold=0.1, hold_duration=30):
-        # self.pose_detector = draw_landmarks.load_detector()
         self.pose_detector = key_extr.PoseExtractor(rgb_mode=True)
         self.feature_count = 33
         self.machine_args = {'movement_threshold': movement_threshold,
@@ -145,7 +143,6 @@ class StreamingSegmentor:
         # If you cannot detect features, for now push the latest feature ?? or a zeroed out feature ?
         # TODO:: Asses what is wrong and what is right based on what aagab does
         try:
-            # _, new_feats = draw_landmarks.run_on_image(self.pose_detector, np_frame, ts = ts_ms, also_draw=False)
             _, new_feats = self.pose_detector.process_frame(np_frame, also_annotate=False)
             if new_feats is None:
                 raise Exception("No landmarks")

@@ -1,12 +1,12 @@
-from . import biomechanical_features as bio_feats
-from . import temporal_segmentation as temp_seg
-from . import keypoint_extractor as key_extr
+from landmark import biomechanical_features as bio_feats
+from landmark import temporal_segmentation as temp_seg
+from landmark import keypoint_extractor as key_extr
 
 import traceback
 import io
 import tempfile
 import torch
-import draw_landmarks
+
 import asyncio
 import cv2
 import numpy

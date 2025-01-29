@@ -9,7 +9,6 @@ import os
 import tempfile
 import pathlib
 import fractions
-import draw_landmarks
 
 import math
 
