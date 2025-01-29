@@ -76,9 +76,9 @@ class Predictor:
             # Observation: Only one of these can be active at a time anyway
             # so maybe just keep it as a service akways on
             # Would help more as it would be a time consuming process to do in reality
-            return { 'Yoga Poses'  : names,
-                     'Confidences' : maxvals,
-                     'Suggestion' : suggestion }
+            return { 'poses'  : names,
+                     'confidences' : maxvals,
+                     'text_suggestion' : suggestion }
         return None
                      
             

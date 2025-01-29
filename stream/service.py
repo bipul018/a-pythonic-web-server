@@ -74,17 +74,20 @@ class ConnectionHandler:
                         pass
                     dprint(f"States changed at {metadata['timestamp']} from {prev_state} -> {new_state}")
                     self.replies.append({'timestamp': metadata['timestamp'],
-                                         'message' : f'Yoga State Changed({prev_state} -> {new_state})',
+                                         'message' : f'Yoga State Changed',
+                                         'from' : f'{prev_state}',
+                                         'to' : f'{new_state}',
                                          'frame_duration' : f'[{prev_mode[0]}, {prev_mode[0] + prev_mode[1][1]})',})
                     pass
                 # Also update all other predictors from past (if they exist they wont be more than 3 at a time i think
                 new_predrs = []
                 for predr in self.streaming_predictors:
+                    # For now, 'poses', 'confidences' and 'text_suggestion' is replied
                     ans = predr.on_frame(self.streaming_segmentor.features)
                     if ans is not None:
-                        self.replies.append({'timestamp': metadata['timestamp'],
-                                             'message' : f'Yoga Predicted',
-                                             'value' : ans})
+                        ans['timestamp'] = metadata['timestamp']
+                        ans['message'] = 'Yoga Predicted'
+                        self.replies.append(ans)
                         pass
                     if not predr.isdone():
                         new_predrs.append(predr)
@@ -114,6 +117,7 @@ class ConnectionHandler:
         # If the message contains 'clip_count', return clip count
         if 'clip_count' in metadata:
             self.replies.append({'timestamp': metadata['timestamp'],
+                                 'message': 'Clip Count Returned',
                                  'clip_count': len(self.videos)})
             pass
 
@@ -169,7 +173,10 @@ class ConnectionHandler:
                 for s in states:
                     print(f"Next state is {s}: {states[s]}")
                     state_prints.append({s: f'{states[s]}'})
-                self.replies.append({'clips' : state_prints})
+                    pass
+                # TODO:: Need another way of handling what was going to be handled here
+                #        Maybe a 'debug' message type??
+                # self.replies.append({'clips' : state_prints})
                 # Record the clips for the things also
                 clip_ranges = [(i, i+states[i][1]) for i in states]
                 clips = clip_videos_frames(io.BytesIO(vid_bytes), clip_ranges)
