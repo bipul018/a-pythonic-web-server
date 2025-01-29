@@ -91,20 +91,25 @@ class Predictor:
             # reply with prediction
             inputs = self.sampled_frames.permute((2,0,1)).unsqueeze(0)
             outputs = run_stsae_gcn.model(inputs)
-            maxval,pose_inx = torch.max(torch.softmax(outputs,1), 1)
-            maxval = maxval.item() * 100
-            
+            # maxval,pose_inx = torch.max(torch.softmax(outputs,1), 1)
+            # maxval = maxval.item() * 100
+            maxvals, pose_inxs = torch.topk(torch.softmax(outputs,1), k=4, dim=1)
+            maxvals = [round(v.item(), 2) for v in list(maxvals.squeeze() * 100)]
+            names = [[run_stsae_gcn.poses_list[idx] for idx in row] for row in pose_inxs]
+
             # calculate the suggestions
             suggestion = "Just enjoy your life"
-            dprint(f"Predicted {suggestion} @ {maxval}")
+            dprint(f"Predicted {suggestion} @ {names[0]}")
             # Outside of this fxn, if suggestion received, send reply 
+
+            # For now reply also a audio 
 
             # return the suggeestions
             # Observation: Only one of these can be active at a time anyway
             # so maybe just keep it as a service akways on
             # Would help more as it would be a time consuming process to do in reality
-            return { 'Yoga Pose'  : run_stsae_gcn.poses_list[pose_inx],
-                     'Confidence' : round(maxval, 2),
+            return { 'Yoga Poses'  : names,
+                     'Confidences' : maxvals,
                      'Suggestion' : suggestion }
         return None
                      
