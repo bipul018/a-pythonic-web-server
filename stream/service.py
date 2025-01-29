@@ -1,11 +1,6 @@
-from landmark import biomechanical_features as bio_feats
-from landmark import temporal_segmentation as temp_seg
-from landmark import keypoint_extractor as key_extr
-
 import traceback
 import io
 import tempfile
-import torch
 
 import asyncio
 import cv2
@@ -15,10 +10,7 @@ from video_rw.video_rw import *
 
 from video_tasks import clip_videos_frames
 
-
-EXPECT_WEBCAM_ONLY = False
-
-from .streamer import DEBUGGING_MODE
+from .misc import *
 
 if DEBUGGING_MODE:
     from matplotlib import pyplot as plot
@@ -29,8 +21,8 @@ if DEBUGGING_MODE:
 update_video_bytes = None
 # from serv import update_video_bytes
 
-
-from .streamer import StreamingSegmentor, try_make_predictor, dprint
+from .segment import StreamingSegmentor
+from .predict import try_make_predictor
 
 class ConnectionHandler:
     def __init__(self):

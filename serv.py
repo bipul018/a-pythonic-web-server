@@ -172,9 +172,9 @@ async def get_last_video_as_bytes():
             "bytes" : base64.b64encode(latest_video_bytes).decode('utf-8')}
 
 
-import features.service
-from features.service import ConnectionHandler
-features.service.update_video_bytes = update_video_bytes
+import stream.service
+from stream.service import ConnectionHandler
+stream.service.update_video_bytes = update_video_bytes
 
 @app.websocket("/wsprocess_frame")
 async def websocket_process_frame(websocket: WebSocket):
