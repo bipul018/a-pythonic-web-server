@@ -56,6 +56,9 @@ pkgs.mkShell {
     pkgs.git
     pkgs.ffmpeg
 
+    # For llm inference
+    # pkgs.python311Packages.groq from pip
+
     # For tts
     pkgs.python311Packages.soundfile
     pkgs.python311Packages.munch
