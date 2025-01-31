@@ -11,6 +11,7 @@ import asyncio
 import numpy
 
 from classification import model_use as stsae_gcn
+from coaching.feedback import generate_pose_feedback
 
 from .misc import map_to_range, dprint, DEBUGGING_MODE
 
@@ -57,7 +58,7 @@ class Predictor:
             FRAME_COUNT = 20
             if self.own_frames.shape[0] < 20:
                 # TODO:: Also indicate that it was recoverable error properly 
-                return False
+                return {}
             sampled_frames = []
             for i in range(0, FRAME_COUNT):
                 j = map_to_range(i, self.own_frames.shape[0], FRAME_COUNT)
@@ -77,6 +78,10 @@ class Predictor:
             # calculate the suggestions
             suggestion = f"You are doing {names[0][0]} pose. Never ever try to make python your first choice. Python is shit!!!!"
             suggestion = f"You are doing {names[0][0]} pose. Hello this beautiful world where people can do yoga with ai assistance!!!!!"
+
+            angles_dict, _ = bio_feats.calculate_joint_angles(self.sampled_frames)
+            suggestion = generate_pose_feedback(angles_dict, names[0][0])
+
             dprint(f"Predicted {suggestion} @ {names[0]}")
             # Outside of this fxn, if suggestion received, send reply 
             # bio_feats.calculate_joint_angles(self.own_frames)
@@ -86,14 +91,13 @@ class Predictor:
             #    pass
                 
             # For now reply also a audio 
-            with tempfile.NamedTemporaryFile(mode='rb', suffix='.wav') as tfile:
-                text_to_speech(suggestion, file_or_name = tfile.name)
-                vbytes = tfile.read()
-                print(f"The output message bytes is of length {len(vbytes)}")
-                output_sound = base64.b64encode(vbytes).decode('utf-8')
-                pass
-            print(f"The output message in form of base64 voice if of length {len(output_sound)}")
-
+            # with tempfile.NamedTemporaryFile(mode='rb', suffix='.wav') as tfile:
+            #     text_to_speech(suggestion, file_or_name = tfile.name)
+            #     vbytes = tfile.read()
+            #     print(f"The output message bytes is of length {len(vbytes)}")
+            #     output_sound = base64.b64encode(vbytes).decode('utf-8')
+            #     pass
+            # print(f"The output message in form of base64 voice if of length {len(output_sound)}")
             
             #if DEBUGGING_MODE:
             #    reset_timeout(10)
@@ -105,8 +109,8 @@ class Predictor:
             # Would help more as it would be a time consuming process to do in reality
             return { 'poses'  : names,
                      'confidences' : maxvals,
-                     'text_suggestion' : suggestion,
-                     'voice_suggestion' : output_sound }
+                     'text_suggestion' : suggestion, }
+                     #'voice_suggestion' : output_sound }
         return None
                      
             
