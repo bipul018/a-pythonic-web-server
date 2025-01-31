@@ -1,14 +1,23 @@
 from landmark import biomechanical_features as bio_feats
 from landmark import temporal_segmentation as temp_seg
 from landmark import keypoint_extractor as key_extr
+from tts.text_to_speech import text_to_speech
 
+import tempfile
+import base64
+import io
 import torch
 import asyncio
 import numpy
 
 from classification import model_use as stsae_gcn
 
-from .misc import map_to_range, dprint
+from .misc import map_to_range, dprint, DEBUGGING_MODE
+
+if DEBUGGING_MODE:
+    from debugging.timeouters import setup_timeout, reset_timeout
+    pass
+
 
 # Also will need a class that actually will do stuff given a list of features, and provide a function that can be triggered given a 'desired' destination frame number
 
@@ -66,11 +75,29 @@ class Predictor:
             names = [[stsae_gcn.poses_list[idx] for idx in row] for row in pose_inxs]
 
             # calculate the suggestions
-            suggestion = "Just enjoy your life"
+            suggestion = f"You are doing {names[0][0]} pose. Never ever try to make python your first choice. Python is shit!!!!"
+            suggestion = f"You are doing {names[0][0]} pose. Hello this beautiful world where people can do yoga with ai assistance!!!!!"
             dprint(f"Predicted {suggestion} @ {names[0]}")
             # Outside of this fxn, if suggestion received, send reply 
+            # bio_feats.calculate_joint_angles(self.own_frames)
 
+            #if DEBUGGING_MODE:
+            #    setup_timeout(10)
+            #    pass
+                
             # For now reply also a audio 
+            with tempfile.NamedTemporaryFile(mode='rb', suffix='.wav') as tfile:
+                text_to_speech(suggestion, file_or_name = tfile.name)
+                vbytes = tfile.read()
+                print(f"The output message bytes is of length {len(vbytes)}")
+                output_sound = base64.b64encode(vbytes).decode('utf-8')
+                pass
+            print(f"The output message in form of base64 voice if of length {len(output_sound)}")
+
+            
+            #if DEBUGGING_MODE:
+            #    reset_timeout(10)
+            #    pass
 
             # return the suggeestions
             # Observation: Only one of these can be active at a time anyway
@@ -78,7 +105,8 @@ class Predictor:
             # Would help more as it would be a time consuming process to do in reality
             return { 'poses'  : names,
                      'confidences' : maxvals,
-                     'text_suggestion' : suggestion }
+                     'text_suggestion' : suggestion,
+                     'voice_suggestion' : output_sound }
         return None
                      
             
