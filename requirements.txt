@@ -16,3 +16,13 @@ mediapipe
 av~=13.0.0
 opencv-python~=4.9.0
 python-multipart
+# Requirements for the tts technology
+soundfile
+munch
+espeakng-loader
+phonemizer-fork
+pydub
+torch
+transformers
+scipy
+# Requirements for using llm

@@ -34,6 +34,7 @@ pkgs.mkShell {
 
 
     # all pytorch stuff from colab notebook
+    # also need to have mediapipe inside venv
     pkgs.python311Packages.torch
     pkgs.python311Packages.torchvision
     pkgs.python311Packages.pandas
@@ -54,6 +55,18 @@ pkgs.mkShell {
     pkgs.wget
     pkgs.git
     pkgs.ffmpeg
+
+    # For tts
+    pkgs.python311Packages.soundfile
+    pkgs.python311Packages.munch
+    # pkgs.python311Packages.espeakng-phonemizer
+    pkgs.python311Packages.phonemizer
+    pkgs.python311Packages.pydub
+    pkgs.python311Packages.transformers
+    # also needs espeakng-loader inside venv
+    pkgs.espeak
+
+
   ];
   propagatedBuildInputs = [
     #pkgs.libffi
@@ -72,6 +85,8 @@ pkgs.mkShell {
   
 
   shellHook = ''
+  export LIBSPEAK_NG_LIB=${pkgs.espeak}/lib
+  export LIBSPEAK_NG_DATA=${pkgs.espeak}/share/espeak-ng-data
 
   #export LD_LIBRARY_PATH=${pkgs.libGL}/lib:$LD_LIBRARY_PATH
   #export LD_LIBRARY_PATH=${pkgs.zlib}/lib:$LD_LIBRARY_PATH
