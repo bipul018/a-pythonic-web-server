@@ -200,9 +200,23 @@ async def websocket_process_frame(websocket: WebSocket):
             #print(f"Dumped metadata : {metadata}")
             service_provider.new_data(metadata, data) # async fxn
             # Check if any pending replies are there, if so, send them one by one
+            def truncate_string(s, max_length=30):
+                """Truncate strings to a maximum length."""
+                if isinstance(s, str) and len(s) > max_length:
+                    return s[:max_length] + "..."  # Add ellipsis to indicate truncation
+                return s
+            def debug_json(data, max_length=30):
+                """Recursively traverse JSON data and truncate strings."""
+                if isinstance(data, dict):
+                    return {key: debug_json(value, max_length) for key, value in data.items()}
+                elif isinstance(data, list):
+                    return [debug_json(item, max_length) for item in data]
+                else:
+                    return truncate_string(data, max_length)
+
             for reply in service_provider.pop_replies():
                 reply = json.dumps(reply)
-                print(f"replying with {reply}....")
+                # print(f"replying with {debug_json(json.loads(reply))}....")
                 await websocket.send_text(reply) # async fxn
     except WebSocketDisconnect:
         pass
@@ -222,4 +236,3 @@ async def websocket_process_frame(websocket: WebSocket):
 # Start server
 if __name__ == "__main__":
     uvicorn.run("serv:app", host="0.0.0.0", port=8080, reload=True)
-    
