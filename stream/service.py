@@ -186,8 +186,10 @@ class ConnectionHandler:
         
     def on_close(self):
         #self.clip_video()
-        self.curr_video_recorder.close()
-        self.curr_video_recorder = None
+        if self.curr_video_recorder:
+            self.curr_video_recorder.close()
+            self.curr_video_recorder = None
+            pass
         print("Closed connection")
         pass
  

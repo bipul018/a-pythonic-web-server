@@ -81,7 +81,7 @@ pkgs.mkShell {
   inputsFrom = [
     # pkgs.gcc
     #pkgs.glibc
-    #pkgs.gcc
+    #pkgs.gcc-unwrapped
   ];
 
   # inputsFrom = [ pkgs.hello pkgs.gnutar ];
@@ -91,6 +91,9 @@ pkgs.mkShell {
   export LIBSPEAK_NG_LIB=${pkgs.espeak}/lib
   export LIBSPEAK_NG_DATA=${pkgs.espeak}/share/espeak-ng-data
 
+  # Provides with lib std c++ so 
+  export LD_LIBRARY_PATH=${pkgs.libgcc.lib}/lib:$LD_LIBRARY_PATH 
+  #export LD_LIBRARY_PATH=${pkgs.gcc}/lib:$LD_LIBRARY_PATH
   #export LD_LIBRARY_PATH=${pkgs.libGL}/lib:$LD_LIBRARY_PATH
   #export LD_LIBRARY_PATH=${pkgs.zlib}/lib:$LD_LIBRARY_PATH
   #export LD_LIBRARY_PATH=${pkgs.glib}/lib:$LD_LIBRARY_PATH
