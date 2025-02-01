@@ -22,9 +22,10 @@ current_dir = os.path.join(os.getcwd(), 'tts')
 tts_model_path = os.path.join(current_dir, 'tts_model')
 voices_path = os.path.join(tts_model_path, 'voices')
 model_path = os.path.join(tts_model_path, 'kokoro-v0_19.pth')
+model_url = 'https://huggingface.co/hexgrad/Kokoro-82M/blob/63fdedb67c53cdd3a231d35b30d80d6649859b91/kokoro-v0_19.pth'
 # Ensure model_path exists
 if not os.path.exists(model_path):
-    print(f"Model file not found at {model_path}")
+    print(f"ERROR: Model file not found at {model_path}, please download from :`{model_url}`")
     model_path = None
     
 
