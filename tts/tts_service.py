@@ -1,10 +1,53 @@
 import os
 import subprocess
+import threading
 import json
 import time
 from tempfile import NamedTemporaryFile as tfile
 
-class TTS_Service:
+# Stole the code from tts file, 
+import os
+import sys
+from importlib.util import spec_from_file_location, module_from_spec
+
+def import_module_from_path(module_name, module_path):
+    """Import a module from file path."""
+    try:
+        spec = spec_from_file_location(module_name, module_path)
+        module = module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+        return module
+    except Exception as e:
+        print(f"Error importing module {module_name}: {e}")
+        raise e
+
+
+class TTS_Service_This_Process:
+    def __init__(self):
+        # tts_path = os.path.join("./tts", "text_to_speech.py")
+        self.tts_module = import_module_from_path("tts", "./tts/text_to_speech.py")
+        self.lock = threading.Lock()
+        pass
+    
+    def __enter__(self):
+        return self
+    def close(self):
+        self.process.terminate()
+        pass
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+        pass
+    def generate(self, filename, text):
+        # Ensure that only one tts action happens at a time
+        # TODO:: If this dont work use lock in another type of tts service too!!!
+        self.lock.acquire()
+        self.tts_module.text_to_speech(text, file_or_name=filename)
+        self.lock.release()
+        pass
+
+
+class TTS_Service_Another_Process:
     def __init__(self):
         self.INPUT_PIPE = "/tmp/tts_input.fifo"
         self.OUTPUT_PIPE = "/tmp/tts_output.fifo"
