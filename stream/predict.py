@@ -48,7 +48,7 @@ class Predictor:
         assert len(state_history) >= 2
         # dont process until 3 more frames
         #  the end_point is the frame past the useful frame (i think)
-        self.end_point = curr_keypoints.shape[0] + 3
+        self.end_point = curr_keypoints.shape[0] + 1
         # Find the useful previous movement start
         # TODO:: make at least some assertions
         self.start_point = list(state_history.items())[-2][0]

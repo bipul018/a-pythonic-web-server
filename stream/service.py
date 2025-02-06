@@ -82,6 +82,7 @@ class ConnectionHandler:
                                          'frame_duration' : f'[{prev_mode[0]}, {prev_mode[0] + prev_mode[1][1]})',})
                     pass
                 # Also update all other predictors from past (if they exist they wont be more than 3 at a time i think
+                # TODO:: Since now the predictor can bre replaced before execution, if too short a hold phase, might fk things up
                 if self.latest_active_predictor:
                     ans = self.latest_active_predictor.on_frame(self.streaming_segmentor.features)
                     if ans is not None:
@@ -103,7 +104,7 @@ class ConnectionHandler:
                         pass
                     pass # if latest active predictor
                 pass
-            pass
+            pass # Just received an element, now process it
         
 
         # A temporary testing measure, if sent 'clip_here', clip the video
