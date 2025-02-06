@@ -32,7 +32,8 @@ class ConnectionHandler:
         # self.streaming_segmentor = None
         self.assumed_fps = 30
         self.streaming_segmentor = StreamingSegmentor()
-        self.streaming_predictors = []
+        self.latest_active_predictor = None
+        self.parallel_tasks = [] # Need to close these on finalizing connection
         pass
 
     def reset_streaming_segmentor(self):
@@ -70,7 +71,8 @@ class ConnectionHandler:
                     
                     predr = try_make_predictor(self.streaming_segmentor.get_history(), self.streaming_segmentor.features)
                     if predr is not None:
-                        self.streaming_predictors.append(predr)
+                        # TODO:: Need to make sure that this place was empty previously, and clean up resources accordingly if needed
+                        self.latest_active_predictor = predr
                         pass
                     dprint(f"States changed at {metadata['timestamp']} from {prev_state} -> {new_state}")
                     self.replies.append({'timestamp': metadata['timestamp'],
@@ -80,20 +82,26 @@ class ConnectionHandler:
                                          'frame_duration' : f'[{prev_mode[0]}, {prev_mode[0] + prev_mode[1][1]})',})
                     pass
                 # Also update all other predictors from past (if they exist they wont be more than 3 at a time i think
-                new_predrs = []
-                for predr in self.streaming_predictors:
-                    # For now, 'poses', 'confidences' and 'text_suggestion' is replied
-                    ans = predr.on_frame(self.streaming_segmentor.features)
+                if self.latest_active_predictor:
+                    ans = self.latest_active_predictor.on_frame(self.streaming_segmentor.features)
                     if ans is not None:
-                        ans['timestamp'] = metadata['timestamp']
-                        ans['message'] = 'Yoga Predicted'
-                        self.replies.append(ans)
+                        ans['reply']['timestamp'] = metadata['timestamp']
+                        ans['reply']['message'] = 'Yoga Predicted' 
+                        self.replies.append(ans['reply'])
+
+                        # Here launch the parallel_task predictor also
+                        new_tasks = ans['tasks']
+                        for t in new_tasks:
+                            t.add_kwargs(timestamp=metadata['timestamp'])
+                            self.parallel_tasks.append(t)
+                            self.parallel_tasks[-1].launch()
+                            pass # for each new_tasks
+
                         pass
-                    if not predr.isdone():
-                        new_predrs.append(predr)
+                    if self.latest_active_predictor.isdone():
+                        self.latest_active_predictor = None
                         pass
-                    pass
-                self.streaming_predictors = new_predrs
+                    pass # if latest active predictor
                 pass
             pass
         
@@ -137,9 +145,40 @@ class ConnectionHandler:
             self.reset_streaming_segmentor()
             pass
         
-        pass
+        self.handle_parallel_tasks()
+        pass # self.new_data()
 
                                                      
+    def force_close_tasks(self):
+        for t in self.parallel_tasks:
+            t.stop()
+            pass
+
+        self.parallel_tasks = None
+        pass
+
+    def handle_parallel_tasks(self):
+        not_yet_complete = []
+        for t in self.parallel_tasks:
+            if not t.is_completed():
+                not_yet_complete.append(t)
+                pass
+            else:
+                # TODO:: Find if this step is compulsory or not
+                t.wait_for_completion()
+                # TODO:: This fxn might throw exception, for now letting it flow to top level
+                res = t.get_result()
+                if res['reply']:
+                    self.replies.append(res['reply'])
+                    pass
+                for t_new in res['tasks']:
+                    not_yet_complete.append(t_new)
+                    pass
+                pass
+            pass # for t in self.parallel_tasks:
+        self.parallel_tasks = not_yet_complete
+        pass # self.handle_parallel_tasks()
+
     def pop_replies(self):
         # For now send any pose detection value back ??
         rep = self.replies
@@ -185,6 +224,7 @@ class ConnectionHandler:
         pass
         
     def on_close(self):
+        self.force_close_tasks()
         #self.clip_video()
         if self.curr_video_recorder:
             self.curr_video_recorder.close()

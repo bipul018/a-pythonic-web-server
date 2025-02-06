@@ -4,6 +4,9 @@ from landmark import keypoint_extractor as key_extr
 # from tts.text_to_speech import text_to_speech
 from tts.tts_service import TTS_Service
 
+from .parallel_task import Parallel_Task_Thread as Parallel_Task
+
+
 import tempfile
 import base64
 import io
@@ -53,7 +56,8 @@ class Predictor:
         pass
     def isdone(self):
         return self.own_frames is not None
-    #def on_frame(self, curr_keypoints, tts_service=None):
+
+    # Will return a tuple of (reply, tasks)
     def on_frame(self, curr_keypoints):
         if curr_keypoints.shape[0] >= self.end_point:
             self.own_frames = curr_keypoints[self.start_point:self.end_point]
@@ -78,50 +82,58 @@ class Predictor:
             maxvals = [round(v.item(), 2) for v in list(maxvals.squeeze() * 100)]
             names = [[stsae_gcn.poses_list[idx] for idx in row] for row in pose_inxs]
 
-            # calculate the suggestions
-            angles_dict, _ = bio_feats.calculate_joint_angles(self.sampled_frames)
-            suggestion = generate_pose_feedback(angles_dict, names[0][0])
-
-            dprint(f"Predicted {suggestion} @ {names[0]}")
-            # Outside of this fxn, if suggestion received, send reply 
-            # bio_feats.calculate_joint_angles(self.own_frames)
-
-            #if DEBUGGING_MODE:
-            #    setup_timeout(10)
-            #    pass
-                
-            # For now reply also a audio
-            output_sound = None
-            if tts_service:
-                with tempfile.NamedTemporaryFile(mode='rb', suffix='.wav') as tfile:
-                    tts_service.generate(filename=tfile.name, text=suggestion)
-                    #text_to_speech(suggestion, file_or_name = tfile.name)
-                    vbytes = tfile.read()
-                    dprint(f"The output message bytes is of length {len(vbytes)}")
-                    output_sound = base64.b64encode(vbytes).decode('utf-8')
-                    pass
-                dprint(f"%%%%%%%%%%%%%%%%%%%%The output message in form of base64 voice if of length {len(output_sound)}%%%%%%%%%%%%%%%%%%%%")
-                pass
-            else:
-                dprint("%%%%%%%%%% No voice was generated %%%%%%%%%%")
-                pass
-            
-            
-            #if DEBUGGING_MODE:
-            #    reset_timeout(10)
-            #    pass
-
-            # return the suggeestions
-            # Observation: Only one of these can be active at a time anyway
-            # so maybe just keep it as a service akways on
-            # Would help more as it would be a time consuming process to do in reality
-            retval = { 'poses'  : names,
-                     'confidences' : maxvals,
-                     'text_suggestion' : suggestion, }
-            if output_sound:
-                retval['voice_suggestion'] = output_sound
-                pass
-            return retval
+            suggestion_task = Parallel_Task(create_llm_portion,
+                                            kwargs = {
+                                                'yoga_name': names[0][0],
+                                                'sampled_frames': self.sampled_frames,
+                                                'tts_service': tts_service
+                                            })
+            # The main runner service will have to also pass in timestamp and launch this task
+            return {'reply': {'poses': names,
+                              'confidences': maxvals},
+                    'tasks': [suggestion_task]}
         return None
                      
-            
+# Helper fxn that launches  the tts part into another process
+def launch_tts_portion(timestamp, tts_service, suggestion):
+    output_sound = None
+    with tempfile.NamedTemporaryFile(mode='rb', suffix='.wav') as tfile:
+        tts_service.generate(filename=tfile.name, text=suggestion)
+        #text_to_speech(suggestion, file_or_name = tfile.name)
+        vbytes = tfile.read()
+        dprint(f"The output message bytes is of length {len(vbytes)}")
+        output_sound = base64.b64encode(vbytes).decode('utf-8')
+        pass
+    # dprint(f"%%%%%%%%%%%%%%%%%%%%The output message in form of base64 voice if of length {len(output_sound)}%%%%%%%%%%%%%%%%%%%%")
+    return {'reply'      : {'timestamp': timestamp,
+                            'message': 'yoga voice feedback',
+                            'voice_suggestion': output_sound },
+            'tasks' : [],}
+
+# Helper fxn that creates  the LLM interface part into another process
+def create_llm_portion(timestamp, yoga_name, sampled_frames, tts_service=None):
+    angles_dict, _ = bio_feats.calculate_joint_angles(sampled_frames)
+    suggestion = generate_pose_feedback(angles_dict, yoga_name)
+    
+    dprint(f"Predicted {suggestion} @ {yoga_name}")
+    # Outside of this fxn, if suggestion received, send reply 
+    # bio_feats.calculate_joint_angles(self.own_frames)
+    if tts_service:
+        tts_task = Parallel_Task(launch_tts_portion,
+                                 kwargs = {
+                                     'timestamp': timestamp,
+                                     'tts_service': tts_service,
+                                     'suggestion': suggestion
+                                 })
+        tts_task.launch()
+        tasks = [tts_task]
+        pass
+    
+    return {'reply'      : {'timestamp': timestamp,
+                            'message': 'yoga text feedback',
+                            'text_suggestion': suggestion },
+            'tasks' : tasks,}
+        
+    
+
+
