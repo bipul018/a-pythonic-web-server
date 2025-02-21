@@ -9,6 +9,7 @@ from tempfile import NamedTemporaryFile as tfile
 import os
 import sys
 from importlib.util import spec_from_file_location, module_from_spec
+import importlib
 
 def import_module_from_path(module_name, module_path):
     """Import a module from file path."""
@@ -21,6 +22,33 @@ def import_module_from_path(module_name, module_path):
     except Exception as e:
         print(f"Error importing module {module_name}: {e}")
         raise e
+
+import wave
+class TTS_Service_Piper:
+    def __init__(self):
+        tts_model = os.path.join("./tts/piper_models/", "en_US-hfc_female-medium.onnx")
+        self.voice = importlib.import_module("piper.voice").PiperVoice.load(tts_model)
+        self.lock = threading.Lock()
+        pass
+    
+    def __enter__(self):
+        return self
+    def close(self):
+        # self.process.terminate()
+        pass
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+        pass
+    def generate(self, filename, text):
+        # Ensure that only one tts action happens at a time
+        # TODO:: If this dont work use lock in another type of tts service too!!!
+        self.lock.acquire()
+        with wave.open(filename, 'wb') as wav_file:
+            self.voice.synthesize(text, wav_file)
+            pass
+        self.lock.release()
+        pass
+
 
 
 class TTS_Service_This_Process:

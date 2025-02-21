@@ -2,5 +2,6 @@
 __pycache__
 *~
 *kokoro-*.pth
+*/piper_models/*
 experiments/*
 experiment*.py

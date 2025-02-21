@@ -2,7 +2,8 @@ from landmark import biomechanical_features as bio_feats
 from landmark import temporal_segmentation as temp_seg
 from landmark import keypoint_extractor as key_extr
 # from tts.text_to_speech import text_to_speech
-from tts.tts_service import TTS_Service_This_Process as TTS_Service
+# from tts.tts_service import TTS_Service_This_Process as TTS_Service
+from tts.tts_service import TTS_Service_Piper as TTS_Service
 
 from .parallel_task import Parallel_Task_Thread as Parallel_Task
 
