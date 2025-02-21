@@ -26,7 +26,6 @@ def unnormalize(pt, wid, hei):
         return (int(x) , int(y))
     return None
 
-
 # ts is the time in milliseconds
 def run_on_image(detector, rgb_image, ts:int, also_draw=True):
     if len(rgb_image.shape) == 4:
@@ -55,6 +54,29 @@ def run_on_image(detector, rgb_image, ts:int, also_draw=True):
         return rgb_image, pts
     raise Exception(f"No landmarks")
 
+# Runs on image but returns lines to draw on 2d image
+def get_2d_lines(detector, rgb_image, ts: int):
+    if len(rgb_image.shape) == 4:
+        rgb_image = rgb_image[0]
+    rgb_image = numpy.ascontiguousarray(rgb_image)
+    rgb_image = rgb_image.copy()
+    bgr_image = mpipe.Image(image_format=mpipe.ImageFormat.SRGB, data=cv2.flip(rgb_image,1))
+    results = detector.detect_for_video(bgr_image, ts)
+    if results.pose_landmarks:
+        pts = []
+        for pt in results.pose_landmarks[0]:
+            pts.append([pt.x, pt.y, pt.z])
+        out_lines = []
+        # loop over all the landmark indices pairs and draw lines
+        for pair in mpipe.solutions.pose.POSE_CONNECTIONS:
+            pt1 = unnormalize(pts[pair[0]], rgb_image.shape[1], rgb_image.shape[0])
+            pt2 = unnormalize(pts[pair[1]], rgb_image.shape[1], rgb_image.shape[0])
+            if (pt1 is not None) and (pt2 is not None):
+                out_lines.append([pt1, pt2])
+                pass
+            pass
+        return out_lines
+    return None
 
 
     

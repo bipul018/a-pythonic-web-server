@@ -23,6 +23,7 @@ update_video_bytes = None
 
 from .segment import StreamingSegmentor
 from .predict import try_make_predictor
+from .landmark_stream import Landmark_Streamer
 
 class ConnectionHandler:
     def __init__(self):
@@ -34,6 +35,8 @@ class ConnectionHandler:
         self.streaming_segmentor = StreamingSegmentor()
         self.latest_active_predictor = None
         self.parallel_tasks = [] # Need to close these on finalizing connection
+
+        self.landmark_streamer = Landmark_Streamer(reply_factor=2)
         pass
 
     def reset_streaming_segmentor(self):
@@ -60,11 +63,20 @@ class ConnectionHandler:
         if (self.curr_video_recorder is not None) and ('frame_type' in metadata) and (metadata['frame_type'] == 'image/jpeg'):
             np_image = cv2.imdecode(numpy.frombuffer(bin_data, numpy.uint8), cv2.IMREAD_COLOR)
             self.curr_video_recorder.write_frame(np_image)
+            # Doing redundant work here, be careful
+            landmark_reply = self.landmark_streamer.run_frame(np_image,
+                                                              metadata['timestamp'])
+            if landmark_reply:
+                self.replies.append(landmark_reply)
             if self.streaming_segmentor is not None:
                 # Also send some replies if mode has changed
                 prev_mode = list(self.streaming_segmentor.get_history().items())[-1]
                 self.streaming_segmentor.add_frame(np_image, metadata['timestamp'])
                 new_mode = list(self.streaming_segmentor.get_history().items())[-1]
+
+                # Here, reply with a serialized form of the keypoitns to draw,
+                #   or reply with actual line coordinates to draw 
+
                 if prev_mode[1][0] != new_mode[1][0]:
                     prev_state = prev_mode[1][0]
                     new_state = new_mode[1][0]
