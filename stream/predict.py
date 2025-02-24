@@ -125,7 +125,7 @@ def create_llm_portion(timestamp, yoga_name, sampled_frames, tts_service=None):
                                  kwargs = {
                                      'timestamp': timestamp,
                                      'tts_service': tts_service,
-                                     'suggestion': suggestion
+                                     'suggestion': f'For {yoga_name}, {suggestion}',
                                  })
         tts_task.launch()
         tasks = [tts_task]

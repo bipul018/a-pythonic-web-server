@@ -22,6 +22,7 @@ app = FastAPI()
 #  TODO:: Find out if when served through some public name, still it works or not??
 origins = [
     "http://localhost:8000",
+    "https://bipul018.github.io/major-project-react-app/",
 ]
 
 app.add_middleware(
