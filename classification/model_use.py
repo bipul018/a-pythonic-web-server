@@ -13,9 +13,10 @@ in_channels = 3
 hidden_channels= 64
 num_classes= len(poses_list)
 num_frames= 20
+num_blocks = 9
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-model = STSAE_GCN(in_channels, hidden_channels, num_classes, num_frames) 
+model = STSAE_GCN(in_channels, hidden_channels, num_classes, num_frames, num_blocks) 
 model_saved_state = torch.load(model_path, weights_only = True,
                         map_location = device)
 #model.load_state_dict(checkpoint['model_state_dict'])
