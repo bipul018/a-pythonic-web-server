@@ -7,7 +7,7 @@ WORKDIR /app
 # Install apt-get items
 RUN apt-get -y update
 RUN apt-get -y upgrade
-RUN apt-get install -y ffmpeg espeak-ng
+RUN apt-get install -y ffmpeg espeak-ng groq
 
 # Copy the original requirements.txt
 COPY requirements.txt .

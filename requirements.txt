@@ -27,3 +27,4 @@ transformers
 scipy
 # Requirements for using llm
 groq
+piper-tts
