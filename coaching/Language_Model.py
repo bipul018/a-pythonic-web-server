@@ -6,7 +6,7 @@ load_dotenv()
 
 def get_llama_feedback(
     user_content, 
-    system_content="You are a helpful fitness coach providing precise, constructive feedback.",
+    system_content="You are a helpful yoga coach providing precise, constructive feedback.",
     model="llama-3.1-8b-instant", 
     temperature=0, 
     max_completion_tokens=1024, 
@@ -190,11 +190,19 @@ def generate_pose_feedback_prompt(
     
     prompt_parts.extend([
         "\nContext:",
-        f"- This is a {action_type.replace('_', ' ')} position.",
+        f"- This is a {action_type.replace('_', ' ')} yoga-pose.",
         "- Focus on angles representing proper body alignment.",
-        "Task: Respond ONLY with the coach's feedback in 5-10 words. Avoid any extra explanations or numbers.",
-        "Keep it short, direct, and actionable, like a yoga instructor would.",
-        "Only focus on most significant flaw and give output like the user is listening while doing the pose."
+        "Task: Respond with the feedback in 5-10 words only like a yoga instructor.",
+        "Avoid any extra explanations or numbers.",
+        "Only focus on most significant flaw and give output like the user is listening to the feedback while doing the pose."
     ])
- 
+        # "Keep it short, direct, and actionable, like a yoga instructor would.",
+    # prompt_parts.extend([
+    #     "\nContext:",
+    #     f"- This is a {action_type.replace('_', ' ')} position.",
+    #     "- Focus on angles representing proper body alignment.",
+    #     "Task: Respond ONLY with the coach's feedback in 5-10 words. Avoid any extra explanations or numbers.",
+    #     "Keep it short, direct, and actionable, like a yoga instructor would.",
+    #     "Only focus on most significant flaw and give output like the user is listening while doing the pose."
+    # ])
     return "\n".join(prompt_parts)

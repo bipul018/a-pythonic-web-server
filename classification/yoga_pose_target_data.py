@@ -145,17 +145,17 @@ TARGET_ANGLES = {
         'right_hip': 180,      # Hips are pressed into the ground, no flexion.
         'left_hip': 180,
         'right_elbow': 180,      # Elbows are straight.
-        'left_elbow': 1800
+        'left_elbow': 180
     },
     'cockerel': {
-        'right_elbow': 90,     # Elbows are bent to hold the body.
-        'left_elbow': 90,
-        'right_hip': 90,       # Hips are flexed to lift the legs.
-        'left_hip': 90,
-        'right_knee': 90,      # Knees are bent to compact the pose.
-        'left_knee': 90,
-        'right_ankle': 90,     # Ankles are flexed for balance.
-        'left_ankle': 90
+        'right_elbow': 180,     # Elbows are bent to hold the body.
+        'left_elbow': 180,
+        'right_hip': 45,       # Hips are flexed to lift the legs.
+        'left_hip': 45,
+        'right_knee': 30,      # Knees are bent to compact the pose.
+        'left_knee': 30,
+        'right_ankle': 180,     # Ankles are flexed for balance.
+        'left_ankle': 180
     },
     'extended-triangle': {
         'right_shoulder': 90, # Top arm is extended upward.
@@ -166,10 +166,10 @@ TARGET_ANGLES = {
         'left_knee': 180
     },
     'extended-side-angle': {
-        'right_shoulder': 180,  # Top arm extends over the ear.
+        'right_shoulder': 130,  # Top arm extends over the ear.
         'left_shoulder': 90,   # Bottom arm rests on the bent leg or floor.
         'right_hip': 180,       # Hips are deeply bent.
-        'left_hip': 90,
+        'left_hip': 30,
         'right_knee': 180,      # Front leg is bent at 90 degrees.
         'left_knee': 90       # Back leg is straight.
     },
