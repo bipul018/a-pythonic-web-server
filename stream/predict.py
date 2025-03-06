@@ -10,12 +10,14 @@ from .parallel_task import Parallel_Task_Thread as Parallel_Task
 
 import tempfile
 import base64
+import os
+import cv2
 import io
 import torch
 import asyncio
 import numpy
 
-from classification import model_use as stsae_gcn
+from classification import new_model_use as stsae_gcn
 from coaching.feedback import generate_pose_feedback
 
 from .misc import map_to_range, dprint, DEBUGGING_MODE
@@ -76,6 +78,13 @@ class Predictor:
             dprint(f"The type of tensor is {self.sampled_frames.dtype}")
             # reply with prediction
             inputs = self.sampled_frames.permute((2,0,1)).unsqueeze(0)
+            # print(f"Just before computing stuff")
+            # print(stsae_gcn.model)
+            # print(stsae_gcn.model.fc.weight)
+            # print(inputs.shape)
+            # print('Testing on a random input')
+            # print(stsae_gcn.model(torch.rand((1,3,20,33))).shape)
+            print(stsae_gcn.model.fc.weight)
             outputs = stsae_gcn.model(inputs)
             # maxval,pose_inx = torch.max(torch.softmax(outputs,1), 1)
             # maxval = maxval.item() * 100

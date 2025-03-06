@@ -83,7 +83,7 @@ def draw_landmarks_on_video(file_or_obj):
             out_file.terminate()
             return out_file.bytes()
 
-from classification import model_use as stsae_gcn
+from classification import new_model_use as stsae_gcn
 
 def infer_stsae_prediction_on_video(file_or_obj):
     context_size = 20
