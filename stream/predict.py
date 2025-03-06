@@ -67,13 +67,11 @@ class Predictor:
             # now sample frames
             FRAME_COUNT = 20
             if self.own_frames.shape[0] < 20:
-                # TODO:: Also indicate that it was recoverable error properly 
-                return {}
-            sampled_frames = []
-            for i in range(0, FRAME_COUNT):
-                j = map_to_range(i, self.own_frames.shape[0], FRAME_COUNT)
-                sampled_frames.append(self.own_frames[j])
-                pass
+                # TODO:: Also indicate that it was recoverable error properly
+                print("****NOT ENOUGH FRAMES****")
+                return None
+            indices = numpy.linspace(0, self.own_frames.shape[0]-1, FRAME_COUNT, dtype=int)
+            sampled_frames = [self.own_frames[i] for i in indices]
             self.sampled_frames = torch.tensor(numpy.array(sampled_frames)).to(torch.float32)
             dprint(f"The type of tensor is {self.sampled_frames.dtype}")
             # reply with prediction
