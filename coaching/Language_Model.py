@@ -206,3 +206,87 @@ def generate_pose_feedback_prompt(
     #     "Only focus on most significant flaw and give output like the user is listening while doing the pose."
     # ])
     return "\n".join(prompt_parts)
+
+from classification.yoga_pose_target_data import PRIORITY_JOINT_MAPPING, POSE_BREATHING_HOLD_STATE
+def generate_short_prompt(
+    user_angles: Dict[str, Any],
+    target_angles: Dict[str, Any],
+    action_type: str,
+    joint_configs: Dict[str, Dict[str, Any]]
+) -> Tuple[str, bool]:
+    """
+    Generate a structured prompt for pose feedback
+    
+    Parameters:
+    - user_angles: Dictionary of current user joint angles
+    - target_angles: Dictionary of target joint angles
+    - action_type: Type of pose/action being performed
+    - joint_configs: Configuration dictionary containing joint relationships
+    
+    Returns:
+    - Formatted prompt string and bool is fault was found or not
+    """
+    # Format the angle data
+    user_angles_clean = format_angle_data(user_angles)
+    target_angles_clean = format_angle_data(target_angles)
+    
+    # Get relevant joints for this action
+    relevant_joints = PRIORITY_JOINT_MAPPING.get(action_type, [])
+    prompt_parts = [
+        f"Action: {action_type} Pose\n",
+        "Current Joint Analysis:\n"
+    ]
+    
+    # Add joint-specific information, focusing on the first significant deviation based on priority
+    ANGLE_TOLERANCE = 30  # Threshold for significant angle difference
+    FAULT_FOUND = False
+
+    for joint in relevant_joints:
+        current_angle = user_angles_clean.get(joint)
+        target_angle = target_angles_clean.get(joint)
+
+        if current_angle is not None and target_angle is not None:
+            deviation = target_angle - current_angle
+            if abs(deviation) > ANGLE_TOLERANCE:
+                FAULT_FOUND = True
+                involved_parts = joint_configs[joint]['joint_names']
+                joint_name_formatted = joint.replace('_', ' ').title()
+                direction = "increase" if deviation > 0 else "decrease"
+                prompt_parts.append(
+                    f"- {joint_name_formatted}:\n"
+                    f"  Current: {current_angle:.1f}°\n"
+                    f"  Target: {target_angle:.1f}°\n"
+                    f"  Involved parts: {', '.join(involved_parts)}\n"
+                )
+                break
+    
+
+    if FAULT_FOUND: 
+        prompt_parts.extend([
+            "\nContext:",
+            f"- This is a {action_type.replace('_', ' ')} yoga-pose.",
+            "- Focus on angles representing proper body alignment.",
+            "Task: Respond with the feedback in 5-10 words only like a yoga instructor.",
+            "Avoid any extra explanations or numbers.",
+            "Give output like the user is listening to the feedback while doing the pose."
+        ])
+
+        return "\n".join(prompt_parts), FAULT_FOUND
+    else:
+        # No significant fault found, provide positive reinforcement
+        breathing_type = POSE_BREATHING_HOLD_STATE.get(action_type, "steady breaths") # Use default if not found
+
+        prompt_parts = [
+            f"Action: {action_type} Pose\n",
+            "Current Joint Analysis: All checked joints are within acceptable tolerance.\n",
+            "Context:",
+            f"- The user is holding the {action_type.replace('_', ' ')} yoga pose correctly.",
+            f"- Recommended breathing for this pose: '{breathing_type}'.",
+            "\nTask:",
+            "Provide brief (5-10 words) encouraging feedback like a yoga instructor.",
+            "Confirm the pose is correct and incorporate the recommended breathing advice.",
+            "Keep it concise, positive, and encouraging.",
+        ]
+        return "\n".join(prompt_parts), FAULT_FOUND
+
+

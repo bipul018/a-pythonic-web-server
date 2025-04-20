@@ -122,17 +122,21 @@ def launch_tts_portion(timestamp, tts_service, suggestion):
 # Helper fxn that creates  the LLM interface part into another process
 def create_llm_portion(timestamp, yoga_name, sampled_frames, tts_service=None):
     angles_dict, _ = bio_feats.calculate_joint_angles(sampled_frames)
-    suggestion = generate_pose_feedback(angles_dict, yoga_name)
+    suggestion,fault_found = generate_pose_feedback(angles_dict, yoga_name)
     
     dprint(f"Predicted {suggestion} @ {yoga_name}")
     # Outside of this fxn, if suggestion received, send reply 
     # bio_feats.calculate_joint_angles(self.own_frames)
     if tts_service:
+        tts_input = f'{suggestion}'
+        if fault_found:
+            tts_input = f'For {yoga_name}, {suggestion}'
+            pass
         tts_task = Parallel_Task(launch_tts_portion,
                                  kwargs = {
                                      'timestamp': timestamp,
                                      'tts_service': tts_service,
-                                     'suggestion': f'For {yoga_name}, {suggestion}',
+                                     'suggestion': tts_input,
                                  })
         tts_task.launch()
         tasks = [tts_task]

@@ -1,6 +1,6 @@
 import torch
 from typing import Dict, Tuple, Any, Union
-from .Language_Model import generate_pose_feedback_prompt as gen_prompt
+from .Language_Model import generate_short_prompt as gen_prompt
 from classification.yoga_pose_target_data import TARGET_ANGLES
 from classification.yoga_pose_target_data import joint_configs
 from .Language_Model import get_llama_feedback
@@ -24,12 +24,13 @@ def generate_pose_feedback(
         reference_joints = joint_configs[k]['joint_names']
         detailed_jav[k] = (reference_joints, v)
         pass
-    prompt = gen_prompt(detailed_jav,
-                        TARGET_ANGLES[action_type],
-                        action_type,
-                        joint_configs)
+    prompt,fault_found = gen_prompt(detailed_jav,
+                          TARGET_ANGLES[action_type],
+                          action_type,
+                          joint_configs)
+    print(prompt)
     model_feedback = get_llama_feedback(prompt, temperature=0.1)
-    return model_feedback
+    return model_feedback, fault_found
     pass
 
 

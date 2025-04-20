@@ -67,11 +67,26 @@ poses = ['downward-dog',
          'staff',
          'wind-relieving',
          'fish']
+
+# Breathing guidance for the hold state of each pose
+POSE_BREATHING_HOLD_STATE = {
+    'downward-dog': "Deep steady breaths",
+    'standing-forward-bend': "Relaxed deep breaths",
+    'half-way-lift': "Steady breaths", # Often transitional, but steady if held
+    'mountain': "Calm even breaths",
+    'chair': "Strong steady breaths",
+    'cobra': "Steady breaths",
+    'cockerel': "Focused breaths", # Assuming a balancing/squat pose
+    'extended-triangle': "Expansive breaths",
+    'extended-side-angle': "Deep steady breaths",
+    'corpse': "Natural relaxed breaths",
+    'staff': "Calm steady breaths",
+    'wind-relieving': "Relaxed breaths",
+    'fish': "Deep chest breaths"
+}
 pose_list = ['downward-dog','standing-forward-bend','half-way-lift',
              'mountain','chair','cobra','cockerel','extended-triangle',
-             'extended-side-angle','corpse','staff','wind-relieving','fish',
-            #  'happy-baby','shoulder-pressing','reclining-cobbler','reclining-hero',
-            #  'frog','tree','intense-side-stretch'
+             'extended-side-angle','corpse','staff','wind-relieving','fish'
             ]
 ACTION_JOINT_MAPPING = {
     'downward-dog': ['right_shoulder', 'left_shoulder', 'right_hip', 'left_hip', 'right_knee', 'left_knee', 'right_elbow', 'left_elbow'],
@@ -87,6 +102,24 @@ ACTION_JOINT_MAPPING = {
     'staff': ['right_hip', 'left_hip', 'right_knee', 'left_knee', 'right_shoulder', 'left_shoulder'],
     'wind-relieving': ['right_hip', 'left_hip', 'right_knee', 'left_knee', 'right_shoulder', 'left_shoulder'],
     'fish': ['right_shoulder', 'left_shoulder', 'right_hip', 'left_hip', 'right_elbow', 'left_elbow']
+}
+
+# Dictionary mapping poses to joints, ordered by perceived importance for feedback
+PRIORITY_JOINT_MAPPING = {
+    'downward-dog': ['right_hip', 'left_hip', 'right_shoulder', 'left_shoulder', 'right_knee', 'left_knee', 'right_elbow', 'left_elbow'], # Hips/Shoulders for V shape, then leg/arm extension
+    'standing-forward-bend': ['right_hip', 'left_hip', 'right_knee', 'left_knee', 'right_ankle', 'left_ankle', 'right_shoulder', 'left_shoulder', 'right_elbow', 'left_elbow'], # Hip flexion primary, then knees, ankles, relaxed arms last
+    'half-way-lift': ['right_hip', 'left_hip', 'right_knee', 'left_knee', 'right_shoulder', 'left_shoulder'], # Hip angle for flat back, then straight knees, then shoulder alignment
+    'mountain': ['right_hip', 'left_hip', 'right_knee', 'left_knee', 'right_shoulder', 'left_shoulder'], # Neutral hips/knees for straightness, then relaxed shoulders
+    'chair': ['right_hip', 'left_hip', 'right_knee', 'left_knee', 'right_shoulder', 'left_shoulder'], # Hip/Knee bend primary, then shoulder flexion for arms up
+    # MAYBE ELBOW MORE IMPORTANT FOR COBRA
+    'cobra': ['right_shoulder', 'left_shoulder', 'right_hip', 'left_hip', 'right_elbow', 'left_elbow'], # Shoulder/Hip extension for backbend, then elbow support
+    'cockerel': [ 'right_elbow', 'left_elbow', 'right_hip', 'left_hip','right_knee', 'left_knee', 'right_ankle', 'left_ankle'], # Hips/Knees/Ankles for balance/squat, then arms
+    'extended-triangle': ['right_hip', 'left_hip', 'right_knee', 'left_knee', 'right_shoulder', 'left_shoulder'], # Hip opening/rotation, straight legs, then arm extension/alignment
+    'extended-side-angle': ['right_hip', 'left_hip', 'right_knee', 'left_knee', 'right_shoulder', 'left_shoulder'], # Hip/Knee angles for lunge, then shoulder/arm alignment
+    'corpse': ['right_hip', 'left_hip', 'right_shoulder', 'left_shoulder', 'right_knee', 'left_knee'], # Overall relaxation, focus on major joints lying flat/neutral
+    'staff': ['right_hip', 'left_hip', 'right_knee', 'left_knee', 'right_shoulder', 'left_shoulder'], # Hip angle for seated upright, straight knees, then shoulder posture
+    'wind-relieving': ['right_hip', 'left_hip', 'right_knee', 'left_knee', 'right_shoulder', 'left_shoulder'], # Hip/Knee flexion primary, relaxed shoulders
+    'fish': ['right_elbow', 'left_elbow','right_shoulder', 'left_shoulder',  'right_hip', 'left_hip'] # Shoulder/Elbow support for backbend, then hip extension
 }
 
 
